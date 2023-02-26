@@ -42,10 +42,11 @@ import static com.itique.ls2d.constant.world.DefaultCityFactory.GREEN_ISLAND_CIT
 
 public class MapScreen implements Screen, InputProcessor {
 
-    private static final int DELTA_PX = 10;
-    private static final int EDGE_PX = 8;
-    private static final float ZOOM_MAX = 1.0f;
-    private static final float ZOOM_MIN = 0.0f;
+    private static final int DELTA_PX = 20;
+    private static final int EDGE_PX = 15;
+    private static final float ZOOM_DIVIDER = 5f;
+    private static final float ZOOM_MIN = 1.0f / ZOOM_DIVIDER;
+    private static final float ZOOM_MAX = ZOOM_MIN * ZOOM_DIVIDER;
 
     private Game game;
     private Stage stage;
@@ -64,6 +65,7 @@ public class MapScreen implements Screen, InputProcessor {
     private Pixmap cityMap;
     private Texture cityMapTexture;
     private Map<Terrain, Pixmap> terrainPixmaps;
+    private IntSet keys;
 
     public MapScreen(Game game) {
         this.game = game;
@@ -72,6 +74,7 @@ public class MapScreen implements Screen, InputProcessor {
         skin = new Skin(Gdx.files.internal("skins/plain-j/plain-james.json"), atlas);
         batch = new SpriteBatch();
         camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera.zoom = 0.8f;
         viewport = new ScreenViewport(camera);
         stage = new Stage(viewport, batch);
         personDao = new PersonFileDao();
@@ -80,6 +83,7 @@ public class MapScreen implements Screen, InputProcessor {
         controlContainer = new Container<>();
         controlContainer.setFillParent(true);
         controlContainer.center();
+        keys = new IntSet();
     }
 
     @Override
@@ -108,6 +112,8 @@ public class MapScreen implements Screen, InputProcessor {
     public void render(float delta) {
         ScreenUtils.clear(Color.WHITE);
         Gdx.input.setInputProcessor(this);
+        processKeyDown();
+        mouseMoved(Gdx.input.getX(), Gdx.input.getY());
         camera.update();
         batch.begin();
         batch.draw(cityMapTexture, 0, 0);
@@ -144,18 +150,27 @@ public class MapScreen implements Screen, InputProcessor {
     public boolean keyDown(int keycode) {
         float x = camera.position.x;
         float y = camera.position.y;
-        switch (keycode) {
-            case A: camera.position.lerp(new Vector3(x - DELTA_PX, y, 0), 0.1f);
-            case W: camera.position.lerp(new Vector3(x, y - DELTA_PX, 0), 0.1f);
-            case D: camera.position.lerp(new Vector3(x + DELTA_PX, y, 0), 0.1f);
-            case S: camera.position.lerp(new Vector3(x, y + DELTA_PX, 0), 0.1f);
+        if (keys.contains(A)) {
+            camera.position.lerp(new Vector3(x - DELTA_PX, y, 0), 0.1f);
+        }
+        if (keys.contains(W)) {
+            camera.position.lerp(new Vector3(x, y + DELTA_PX, 0), 0.1f);
+        }
+        if (keys.contains(D)) {
+            camera.position.lerp(new Vector3(x + DELTA_PX, y, 0), 0.1f);
+        }
+        if (keys.contains(S)) {
+            camera.position.lerp(new Vector3(x, y - DELTA_PX, 0), 0.1f);
         }
         return true;
     }
 
     @Override
     public boolean keyUp(int keycode) {
-        return false;
+        if (this.keys.contains(keycode)) {
+            this.keys.remove(keycode);
+        }
+        return true;
     }
 
     @Override
@@ -187,27 +202,61 @@ public class MapScreen implements Screen, InputProcessor {
 
     @Override
     public boolean scrolled(float amountX, float amountY) {
+        if (Float.compare(camera.zoom, ZOOM_MAX) >= 0) {
+            camera.zoom = ZOOM_MAX - 1.0f / ZOOM_DIVIDER;
+        } else if (Float.compare(camera.zoom, ZOOM_MIN) <= 0) {
+            camera.zoom = ZOOM_MIN + 1.0f / ZOOM_DIVIDER;
+        }
         if (Float.compare(camera.zoom, ZOOM_MAX) < 0
                 && Float.compare(camera.zoom, ZOOM_MIN) > 0) {
-            camera.zoom += amountY / 4;
-            System.out.println(camera.zoom);
+            camera.zoom += amountY / ZOOM_DIVIDER;
         }
         return true;
     }
 
     private void processMapNavigation(int screenX, int screenY) {
-        if (screenX < 1 && screenY > camera.viewportHeight - 1) {
-            camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
+        if (screenX < EDGE_PX) {
+            if (screenY > camera.viewportHeight - EDGE_PX) {
+                camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
+                        camera.position.y - DELTA_PX, 0), 0.1f);
+            } else if (screenY < EDGE_PX) {
+                camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
+                        camera.position.y + DELTA_PX, 0), 0.1f);
+            } else {
+                camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
+                        camera.position.y, 0), 0.1f);
+            }
+        } else if (screenX > camera.viewportWidth - EDGE_PX) {
+            if (screenY < EDGE_PX) {
+                camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
+                        camera.position.y + DELTA_PX, 0), 0.1f);
+            } else if (screenY > camera.viewportHeight - EDGE_PX) {
+                camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
+                        camera.position.y - DELTA_PX, 0), 0.1f);
+            } else {
+                camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
+                        camera.position.y, 0), 0.1f);
+            }
+        } else if (screenY < EDGE_PX) {
+            camera.position.lerp(new Vector3(camera.position.x,
                     camera.position.y + DELTA_PX, 0), 0.1f);
-        } else if (screenX < 1 && screenY < 1) {
-            camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
+        } else if (screenY > camera.viewportHeight - EDGE_PX) {
+            camera.position.lerp(new Vector3(camera.position.x,
                     camera.position.y - DELTA_PX, 0), 0.1f);
-        } else if (screenX > camera.viewportWidth - 1 && screenY < 1) {
-            camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
-                    camera.position.y - DELTA_PX, 0), 0.1f);
-        } else if (screenX > camera.viewportWidth - 1 && screenY > camera.viewportHeight - 1) {
-            camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
-                    camera.position.y + DELTA_PX, 0), 0.1f);
+        }
+    }
+
+    private void processKeyDown() {
+        int keyDown = Gdx.app.getInput().isKeyPressed(A) ? A
+                : Gdx.app.getInput().isKeyPressed(W) ? W
+                : Gdx.app.getInput().isKeyPressed(D) ? D
+                : Gdx.app.getInput().isKeyPressed(S) ? S
+                : -1;
+        if (keyDown != -1) {
+            if (!keys.contains(keyDown)) {
+                keys.add(keyDown);
+            }
+            keyDown(keyDown);
         }
     }
 }
