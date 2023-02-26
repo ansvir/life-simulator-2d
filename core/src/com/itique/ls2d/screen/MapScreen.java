@@ -19,6 +19,7 @@ import com.badlogic.gdx.utils.IntSet;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.itique.ls2d.constant.RGBAConstant;
 import com.itique.ls2d.constant.world.DefaultCity;
 import com.itique.ls2d.custom.actor.HumanActor;
 import com.itique.ls2d.custom.component.GridComponent;
@@ -47,6 +48,7 @@ public class MapScreen implements Screen, InputProcessor {
     private static final float ZOOM_DIVIDER = 5f;
     private static final float ZOOM_MIN = 1.0f / ZOOM_DIVIDER;
     private static final float ZOOM_MAX = ZOOM_MIN * ZOOM_DIVIDER;
+    private static final int BORDER_DIAPASON = 5;
 
     private Game game;
     private Stage stage;
@@ -102,6 +104,7 @@ public class MapScreen implements Screen, InputProcessor {
                     .entrySet().stream()
                     .collect(Collectors.toMap(Map.Entry::getKey, v -> new Pixmap(Gdx.files.internal(v.getValue()))));
             cityMap = new Pixmap(Gdx.files.internal(defaultCity.getMapPath()));
+            drawCityBorders();
             cityMapTexture = new Texture(cityMap);
             viewport.setWorldWidth(cityMap.getWidth());
             viewport.setWorldHeight(cityMap.getHeight());
@@ -110,7 +113,7 @@ public class MapScreen implements Screen, InputProcessor {
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(Color.WHITE);
+        ScreenUtils.clear(Color.valueOf("178693"));
         Gdx.input.setInputProcessor(this);
         processKeyDown();
         mouseMoved(Gdx.input.getX(), Gdx.input.getY());
@@ -123,7 +126,7 @@ public class MapScreen implements Screen, InputProcessor {
 
     @Override
     public void resize(int width, int height) {
-
+        stage.getViewport().update(width, height);
     }
 
     @Override
@@ -215,34 +218,36 @@ public class MapScreen implements Screen, InputProcessor {
     }
 
     private void processMapNavigation(int screenX, int screenY) {
-        if (screenX < EDGE_PX) {
-            if (screenY > camera.viewportHeight - EDGE_PX) {
-                camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
-                        camera.position.y - DELTA_PX, 0), 0.1f);
+        if (screenY > 0 && screenX > 0) {
+            if (screenX < EDGE_PX) {
+                if (screenY > camera.viewportHeight - EDGE_PX) {
+                    camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
+                            camera.position.y - DELTA_PX, 0), 0.1f);
+                } else if (screenY < EDGE_PX) {
+                    camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
+                            camera.position.y + DELTA_PX, 0), 0.1f);
+                } else {
+                    camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
+                            camera.position.y, 0), 0.1f);
+                }
+            } else if (screenX > camera.viewportWidth - EDGE_PX) {
+                if (screenY < EDGE_PX) {
+                    camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
+                            camera.position.y + DELTA_PX, 0), 0.1f);
+                } else if (screenY > camera.viewportHeight - EDGE_PX) {
+                    camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
+                            camera.position.y - DELTA_PX, 0), 0.1f);
+                } else {
+                    camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
+                            camera.position.y, 0), 0.1f);
+                }
             } else if (screenY < EDGE_PX) {
-                camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
-                        camera.position.y + DELTA_PX, 0), 0.1f);
-            } else {
-                camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
-                        camera.position.y, 0), 0.1f);
-            }
-        } else if (screenX > camera.viewportWidth - EDGE_PX) {
-            if (screenY < EDGE_PX) {
-                camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
+                camera.position.lerp(new Vector3(camera.position.x,
                         camera.position.y + DELTA_PX, 0), 0.1f);
             } else if (screenY > camera.viewportHeight - EDGE_PX) {
-                camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
+                camera.position.lerp(new Vector3(camera.position.x,
                         camera.position.y - DELTA_PX, 0), 0.1f);
-            } else {
-                camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
-                        camera.position.y, 0), 0.1f);
             }
-        } else if (screenY < EDGE_PX) {
-            camera.position.lerp(new Vector3(camera.position.x,
-                    camera.position.y + DELTA_PX, 0), 0.1f);
-        } else if (screenY > camera.viewportHeight - EDGE_PX) {
-            camera.position.lerp(new Vector3(camera.position.x,
-                    camera.position.y - DELTA_PX, 0), 0.1f);
         }
     }
 
@@ -257,6 +262,30 @@ public class MapScreen implements Screen, InputProcessor {
                 keys.add(keyDown);
             }
             keyDown(keyDown);
+        }
+    }
+
+    private void drawCityBorders() {
+        cityMap.setColor(Color.RED);
+        for (int y = 0; y <= cityMap.getHeight(); y += BORDER_DIAPASON) {
+            int drawY = y;
+            cityMap.drawPixel(0, drawY++);
+            cityMap.drawPixel(0, drawY);
+        }
+        for (int y = 0; y <= cityMap.getHeight(); y += BORDER_DIAPASON) {
+            int drawY = y;
+            cityMap.drawPixel(cityMap.getWidth() - 1, drawY++);
+            cityMap.drawPixel(cityMap.getWidth() - 1, drawY);
+        }
+        for (int x = 0; x <= cityMap.getHeight(); x += BORDER_DIAPASON) {
+            int drawX = x;
+            cityMap.drawPixel(drawX++, 0);
+            cityMap.drawPixel(drawX, 0);
+        }
+        for (int x = 0; x <= cityMap.getHeight(); x += BORDER_DIAPASON) {
+            int drawX = x;
+            cityMap.drawPixel(drawX++, cityMap.getHeight() - 1);
+            cityMap.drawPixel(drawX, cityMap.getHeight() - 1);
         }
     }
 }
