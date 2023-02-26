@@ -1,12 +1,15 @@
 package com.itique.ls2d.model.timeline;
 
-public class TimeLineTask implements Runnable {
+import com.badlogic.gdx.utils.async.AsyncTask;
 
-    private volatile long currentMinutes;
-    private volatile long currentHours;
+public class TimeLineTask implements AsyncTask<String> {
+
+    private long currentMinutes;
+    private long currentHours;
     private final long waitTime;
-    private volatile long prevTime;
-    private volatile long time;
+    private long prevTime;
+    private long time;
+    private boolean isFinished;
 
     public TimeLineTask(long waitTime) {
         this.currentMinutes = 0L;
@@ -14,15 +17,17 @@ public class TimeLineTask implements Runnable {
         this.prevTime = System.currentTimeMillis();
         this.time = this.prevTime;
         this.waitTime = waitTime;
+        this.isFinished = false;
     }
 
     @Override
-    public void run() {
+    public String call() {
         boolean stop = false;
-        while (!stop) {
+        while (!stop || this.isFinished) {
             stop = iterateAndGet();
         }
-        Thread.currentThread().interrupt();
+        this.isFinished = true;
+        return this.get();
     }
 
     private boolean iterateAndGet() {
@@ -61,6 +66,14 @@ public class TimeLineTask implements Runnable {
         }
         result.append(this.currentMinutes);
         return result.toString();
+    }
+
+    public boolean isFinished() {
+        return isFinished;
+    }
+
+    public void forceFinish() {
+        this.isFinished = true;
     }
 
 }

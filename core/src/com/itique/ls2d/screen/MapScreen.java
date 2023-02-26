@@ -1,6 +1,9 @@
 package com.itique.ls2d.screen;
 
-import com.badlogic.gdx.*;
+import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -8,19 +11,20 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.*;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.ui.Container;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.IntSet;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.async.AsyncExecutor;
+import com.badlogic.gdx.utils.async.AsyncResult;
+import com.badlogic.gdx.utils.async.AsyncTask;
+import com.badlogic.gdx.utils.async.ThreadUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
-import com.itique.ls2d.constant.RGBAConstant;
 import com.itique.ls2d.constant.world.DefaultCity;
-import com.itique.ls2d.custom.actor.HumanActor;
-import com.itique.ls2d.custom.component.GridComponent;
-import com.itique.ls2d.model.ImageItem;
 import com.itique.ls2d.model.Man;
 import com.itique.ls2d.model.timeline.TimeLineTask;
 import com.itique.ls2d.model.world.City;
@@ -29,9 +33,7 @@ import com.itique.ls2d.model.world.World;
 import com.itique.ls2d.service.CityFileDao;
 import com.itique.ls2d.service.PersonFileDao;
 import com.itique.ls2d.service.WorldFileDao;
-import com.itique.ls2d.thread.ExecutorServiceManager;
 
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -70,7 +72,8 @@ public class MapScreen implements Screen, InputProcessor {
     private Map<Terrain, Pixmap> terrainPixmaps;
     private IntSet keys;
     private TimeLineTask timeline;
-    private ExecutorServiceManager executorServiceManager;
+    private AsyncExecutor asyncExecutor;
+    private AsyncResult<String> timeString;
 
     public MapScreen(Game game) {
         this.game = game;
@@ -94,14 +97,14 @@ public class MapScreen implements Screen, InputProcessor {
         controlContainer.center();
         controlContainer.debugAll();
         keys = new IntSet();
-        executorServiceManager = new ExecutorServiceManager();
+        asyncExecutor = new AsyncExecutor(1);
     }
 
     @Override
     public void show() {
         Gdx.input.setInputProcessor(this);
-        timeline = new TimeLineTask(1000L);
-        executorServiceManager.addTask(timeline);
+        timeline = new TimeLineTask(500L);
+        timeString = asyncExecutor.submit(timeline);
         hero = personDao.findHero().get();
         world = worldDao.findAll().stream()
                 .filter(w -> w.getHumansIds().stream().anyMatch(h -> h.equals(hero.getId())))
@@ -127,7 +130,7 @@ public class MapScreen implements Screen, InputProcessor {
     public void render(float delta) {
         ScreenUtils.clear(Color.valueOf("178693"));
         Gdx.input.setInputProcessor(this);
-        time.setText(timeline.get());
+        processTimLine();
         processKeyDown();
         mouseMoved(Gdx.input.getX(), Gdx.input.getY());
         camera.update();
@@ -159,7 +162,14 @@ public class MapScreen implements Screen, InputProcessor {
 
     @Override
     public void dispose() {
-
+        stage.dispose();
+        skin.dispose();
+        atlas.dispose();
+        batch.dispose();
+        terrainPixmaps.values().forEach(Pixmap::dispose);
+        cityMap.dispose();
+        cityMapTexture.dispose();
+        timeline.forceFinish();
     }
 
     @Override
@@ -299,6 +309,15 @@ public class MapScreen implements Screen, InputProcessor {
             int drawX = x;
             cityMap.drawPixel(drawX++, cityMap.getHeight() - 1);
             cityMap.drawPixel(drawX, cityMap.getHeight() - 1);
+        }
+    }
+
+    private void processTimLine() {
+        if (!timeString.isDone()) {
+            time.setText(timeline.get());
+        } else {
+            timeline = new TimeLineTask(500L);
+            timeString = asyncExecutor.submit(timeline);
         }
     }
 }
