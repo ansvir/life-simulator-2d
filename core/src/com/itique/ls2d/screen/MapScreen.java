@@ -10,10 +10,7 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Container;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.IntSet;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -25,12 +22,14 @@ import com.itique.ls2d.custom.actor.HumanActor;
 import com.itique.ls2d.custom.component.GridComponent;
 import com.itique.ls2d.model.ImageItem;
 import com.itique.ls2d.model.Man;
+import com.itique.ls2d.model.timeline.TimeLineTask;
 import com.itique.ls2d.model.world.City;
 import com.itique.ls2d.model.world.Terrain;
 import com.itique.ls2d.model.world.World;
 import com.itique.ls2d.service.CityFileDao;
 import com.itique.ls2d.service.PersonFileDao;
 import com.itique.ls2d.service.WorldFileDao;
+import com.itique.ls2d.thread.ExecutorServiceManager;
 
 import java.util.List;
 import java.util.Map;
@@ -63,11 +62,15 @@ public class MapScreen implements Screen, InputProcessor {
     private Man hero;
     private World world;
     private City city;
+    private Table controlTable;
     private Container<Table> controlContainer;
+    private Label time;
     private Pixmap cityMap;
     private Texture cityMapTexture;
     private Map<Terrain, Pixmap> terrainPixmaps;
     private IntSet keys;
+    private TimeLineTask timeline;
+    private ExecutorServiceManager executorServiceManager;
 
     public MapScreen(Game game) {
         this.game = game;
@@ -82,15 +85,23 @@ public class MapScreen implements Screen, InputProcessor {
         personDao = new PersonFileDao();
         worldDao = new WorldFileDao();
         cityDao = new CityFileDao();
-        controlContainer = new Container<>();
+        time = new Label("00:00", skin);
+        controlTable = new Table();
+        controlTable.center();
+        controlTable.add(time).expand().top().right();
+        controlContainer = new Container<>(controlTable);
         controlContainer.setFillParent(true);
         controlContainer.center();
+        controlContainer.debugAll();
         keys = new IntSet();
+        executorServiceManager = new ExecutorServiceManager();
     }
 
     @Override
     public void show() {
         Gdx.input.setInputProcessor(this);
+        timeline = new TimeLineTask(1000L);
+        executorServiceManager.addTask(timeline);
         hero = personDao.findHero().get();
         world = worldDao.findAll().stream()
                 .filter(w -> w.getHumansIds().stream().anyMatch(h -> h.equals(hero.getId())))
@@ -109,12 +120,14 @@ public class MapScreen implements Screen, InputProcessor {
             viewport.setWorldWidth(cityMap.getWidth());
             viewport.setWorldHeight(cityMap.getHeight());
         }
+        stage.addActor(controlContainer);
     }
 
     @Override
     public void render(float delta) {
         ScreenUtils.clear(Color.valueOf("178693"));
         Gdx.input.setInputProcessor(this);
+        time.setText(timeline.get());
         processKeyDown();
         mouseMoved(Gdx.input.getX(), Gdx.input.getY());
         camera.update();

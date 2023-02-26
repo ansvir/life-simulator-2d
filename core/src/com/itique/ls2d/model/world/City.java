@@ -1,14 +1,15 @@
 package com.itique.ls2d.model.world;
 
+import com.itique.ls2d.model.Identifiable;
+import com.itique.ls2d.model.place.Place;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.UUID;
 
-public class City implements Serializable {
+public class City extends Identifiable implements Serializable {
 
-    private String id;
     private String defaultId;
     private String name;
     private float squareKm;
@@ -16,8 +17,7 @@ public class City implements Serializable {
     private List<Building> buildings;
 
     public City(String name, float squareKm, int population, List<Building> buildings) {
-        this.id = UUID.randomUUID().toString();
-        this.defaultId = this.id;
+        this.defaultId = super.getId();
         this.name = name;
         this.squareKm = squareKm;
         this.population = population;
@@ -25,7 +25,6 @@ public class City implements Serializable {
     }
 
     public City(String defaultId, String name, float squareKm, int population, List<Building> buildings) {
-        this.id = UUID.randomUUID().toString();
         this.defaultId = defaultId;
         this.name = name;
         this.squareKm = squareKm;
@@ -35,10 +34,6 @@ public class City implements Serializable {
 
     public City() {
         // for serialization
-    }
-
-    public String getId() {
-        return id;
     }
 
     public String getDefaultId() {
@@ -85,7 +80,7 @@ public class City implements Serializable {
     @Override
     public String toString() {
         return new ToStringBuilder(this)
-                .append("id", id)
+                .append("id", super.getId())
                 .append("defaultId", defaultId)
                 .append("name", name)
                 .append("squareKm", squareKm)
