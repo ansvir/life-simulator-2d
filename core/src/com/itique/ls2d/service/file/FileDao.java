@@ -1,4 +1,4 @@
-package com.itique.ls2d.service;
+package com.itique.ls2d.service.file;
 
 import java.util.List;
 import java.util.Optional;

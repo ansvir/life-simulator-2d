@@ -1,0 +1,26 @@
+[
+  {
+    "id": "1",
+    "pattern": "Hello! My name is %s. What is your name?",
+    "type": "GREETING",
+    "accent": "HAPPY"
+  },
+  {
+    "id": "2",
+    "pattern": "Hi! How are you?",
+    "type": "GREETING",
+    "accent": "NORMAL"
+  },
+  {
+    "id": "3",
+    "pattern": "Hm, who are you?",
+    "type": "GREETING",
+    "accent": "SAD"
+  },
+  {
+    "id": "4",
+    "pattern": "What do you need!?",
+    "type": "GREETING",
+    "accent": "ANGRY"
+  }
+]

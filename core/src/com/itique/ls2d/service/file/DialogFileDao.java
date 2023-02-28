@@ -1,32 +1,32 @@
-package com.itique.ls2d.service;
+package com.itique.ls2d.service.file;
 
 import com.badlogic.gdx.Gdx;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.itique.ls2d.model.world.World;
+import com.itique.ls2d.model.dialog.Dialog;
 
 import java.util.List;
 import java.util.Optional;
 
-import static com.itique.ls2d.constant.Constant.WORLDS_DATA;
+import static com.itique.ls2d.constant.Constant.DIALOG_DATA;
 
-public class WorldFileDao implements FileDao<World> {
+public class DialogFileDao implements FileDao<Dialog> {
 
-    private final ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
-    public WorldFileDao() {
+    public DialogFileDao() {
         this.objectMapper = new ObjectMapper();
     }
 
     @Override
-    public void save(World world) {
+    public void save(Dialog dialog) {
         try {
-            List<World> worlds = findAll();
-            worlds.add(world);
-            Gdx.files.local(WORLDS_DATA)
+            List<Dialog> dialogs = findAll();
+            dialogs.add(dialog);
+            Gdx.files.local(DIALOG_DATA)
                     .writeString(objectMapper.writerWithDefaultPrettyPrinter()
-                            .writeValueAsString(worlds), false);
+                            .writeValueAsString(dialogs), false);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -35,9 +35,9 @@ public class WorldFileDao implements FileDao<World> {
     @Override
     public void deleteById(String id) {
         try {
-            Gdx.files.local(WORLDS_DATA)
+            Gdx.files.local(DIALOG_DATA)
                     .writeString(objectMapper.writeValueAsString(findAll().stream()
-                            .filter(w -> !w.getId().equals(id))), false);
+                            .filter(d -> !d.getId().equals(id))), false);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -45,19 +45,19 @@ public class WorldFileDao implements FileDao<World> {
 
     @Override
     public void deleteAll() {
-        Gdx.files.local(WORLDS_DATA).delete();
+        Gdx.files.local(DIALOG_DATA).delete();
     }
 
     @Override
-    public Optional<World> findById(String id) {
-        return findAll().stream().filter(w -> w.getId().equals(id))
+    public Optional<Dialog> findById(String id) {
+        return findAll().stream().filter(d -> d.getId().equals(id))
                 .findFirst();
     }
 
     @Override
-    public List<World> findAll() {
+    public List<Dialog> findAll() {
         try {
-            return objectMapper.readValue(Gdx.files.local(WORLDS_DATA)
+            return objectMapper.readValue(Gdx.files.local(DIALOG_DATA)
                     .readString(), new TypeReference<>() {});
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);

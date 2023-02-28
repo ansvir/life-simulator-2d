@@ -1,4 +1,4 @@
-package com.itique.ls2d.service;
+package com.itique.ls2d.service.file;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;

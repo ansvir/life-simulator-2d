@@ -1,5 +1,6 @@
 package com.itique.ls2d.service;
 
+import com.itique.ls2d.service.file.PersonFileDao;
 import com.itique.ls2d.util.generate.PersonGeneratorUtil;
 
 public class PersonFileDaoTest {

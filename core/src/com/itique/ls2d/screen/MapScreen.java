@@ -23,14 +23,18 @@ import com.badlogic.gdx.utils.async.AsyncExecutor;
 import com.badlogic.gdx.utils.async.AsyncResult;
 import com.badlogic.gdx.utils.viewport.*;
 import com.itique.ls2d.constant.world.DefaultCity;
+import com.itique.ls2d.custom.actor.CityMapActor;
+import com.itique.ls2d.custom.component.ChatComponent;
+import com.itique.ls2d.custom.listener.ControlListener;
 import com.itique.ls2d.model.Man;
 import com.itique.ls2d.model.timeline.TimeLineTask;
 import com.itique.ls2d.model.world.City;
 import com.itique.ls2d.model.world.Terrain;
 import com.itique.ls2d.model.world.World;
-import com.itique.ls2d.service.CityFileDao;
-import com.itique.ls2d.service.PersonFileDao;
-import com.itique.ls2d.service.WorldFileDao;
+import com.itique.ls2d.service.event.DialogEvent;
+import com.itique.ls2d.service.file.CityFileDao;
+import com.itique.ls2d.service.file.PersonFileDao;
+import com.itique.ls2d.service.file.WorldFileDao;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -40,7 +44,7 @@ import static com.itique.ls2d.constant.Constant.GLOBAL_PREF;
 import static com.itique.ls2d.constant.Constant.HERO_START_CITY_ID_KEY;
 import static com.itique.ls2d.constant.world.DefaultCityFactory.GREEN_ISLAND_CITY;
 
-public class MapScreen implements Screen, InputProcessor {
+public class MapScreen implements Screen {
 
     private static final int DELTA_PX = 20;
     private static final int EDGE_PX = 15;
@@ -50,11 +54,9 @@ public class MapScreen implements Screen, InputProcessor {
     private static final int BORDER_DIAPASON = 5;
 
     private Game game;
-    private Stage mainStage;
-    private Stage controlStage;
     private Skin skin;
     private TextureAtlas atlas;
-    private SpriteBatch batch;
+    private CityMapActor cityMapActor;
     private Viewport viewport;
     private OrthographicCamera camera;
     private PersonFileDao personDao;
@@ -64,6 +66,7 @@ public class MapScreen implements Screen, InputProcessor {
     private World world;
     private City city;
     private Table controlTable;
+    private ChatComponent chat;
     private Container<Table> controlContainer;
     private Label time;
     private Pixmap cityMap;
@@ -74,58 +77,66 @@ public class MapScreen implements Screen, InputProcessor {
     private final AsyncExecutor asyncExecutor;
     private AsyncResult<String> timeString;
     private Music bgMusic;
+    private float worldWidth;
+    private float worldHeight;
+    private final ControlListener controlListener;
 
     public MapScreen(Game game) {
         this.game = game;
+        initializeData();
         atlas = new TextureAtlas(Gdx.files.internal("skins/plain-j/plain-james.atlas"));
         skin = new Skin(Gdx.files.internal("skins/plain-j/plain-james.json"), atlas);
-        batch = new SpriteBatch();
         camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        viewport = new ScreenViewport(camera);
-        mainStage = new Stage(viewport, batch);
-        controlStage = new Stage();
+        viewport = new ExtendViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
+        controlListener = new ControlListener(viewport);
         time = new Label("00:00", skin);
         controlTable = new Table();
         controlTable.setFillParent(true);
         controlTable.add(time).pad(20).top().right();
+        controlTable.row();
+        chat = new ChatComponent(hero.getProfile().getName());
+        controlTable.add(chat);
         controlContainer = new Container<>(controlTable);
         controlContainer.setFillParent(true);
         controlContainer.center();
         keys = new IntSet();
         asyncExecutor = new AsyncExecutor(1);
         bgMusic = Gdx.audio.newMusic(Gdx.files.internal("audio/map_bg.mp3"));
+        cityMapActor = new CityMapActor(cityMapTexture);
     }
 
     @Override
     public void show() {
-        Gdx.input.setInputProcessor(this);
+        Gdx.input.setInputProcessor(controlListener);
         timeline = new TimeLineTask(500L);
         timeString = asyncExecutor.submit(timeline);
-        initializeData();
         bgMusic.setLooping(true);
         bgMusic.play();
-        controlStage.addActor(controlContainer);
+        DialogEvent dialogEvent = new DialogEvent();
+        dialogEvent.startDialog();
+        chat.startChat(dialogEvent, hero);
+        controlListener.addActor(cityMapActor);
+        controlListener.addActor(controlContainer);
     }
 
     @Override
     public void render(float delta) {
         ScreenUtils.clear(Color.valueOf("178693"));
-        Gdx.input.setInputProcessor(this);
-        processControlContainer();
+        Gdx.input.setInputProcessor(controlListener);
         processTimLine();
         processKeyDown();
-        mouseMoved(Gdx.input.getX(), Gdx.input.getY());
-        batch.begin();
-        batch.draw(cityMapTexture, 0, 0);
-        batch.end();
-        mainStage.draw();
-        controlStage.draw();
+        controlListener.mouseMoved(Gdx.input.getX(), Gdx.input.getY());
+        controlListener.act(delta);
+        controlListener.draw();
         camera.update();
     }
 
     @Override
     public void resize(int width, int height) {
-        mainStage.getViewport().update(width, height);
+        controlListener.getStage()
+                .getViewport().update(width, height, true);
+        camera.viewportWidth = width;
+        camera.viewportHeight = height;
     }
 
     @Override
@@ -145,118 +156,119 @@ public class MapScreen implements Screen, InputProcessor {
 
     @Override
     public void dispose() {
-        mainStage.dispose();
+        controlListener.dispose();
         skin.dispose();
         atlas.dispose();
-        batch.dispose();
         terrainPixmaps.values().forEach(Pixmap::dispose);
         cityMap.dispose();
         cityMapTexture.dispose();
         timeline.forceFinish();
         asyncExecutor.dispose();
         bgMusic.dispose();
+        cityMapActor.dispose();
     }
 
-    @Override
-    public boolean keyDown(int keycode) {
-        float x = camera.position.x;
-        float y = camera.position.y;
-        if (keys.contains(A)) {
-            camera.position.lerp(new Vector3(x - DELTA_PX, y, 0), 0.1f);
-        }
-        if (keys.contains(W)) {
-            camera.position.lerp(new Vector3(x, y + DELTA_PX, 0), 0.1f);
-        }
-        if (keys.contains(D)) {
-            camera.position.lerp(new Vector3(x + DELTA_PX, y, 0), 0.1f);
-        }
-        if (keys.contains(S)) {
-            camera.position.lerp(new Vector3(x, y - DELTA_PX, 0), 0.1f);
-        }
-        return true;
-    }
-
-    @Override
-    public boolean keyUp(int keycode) {
-        if (this.keys.contains(keycode)) {
-            this.keys.remove(keycode);
-        }
-        return true;
-    }
-
-    @Override
-    public boolean keyTyped(char character) {
-        return false;
-    }
-
-    @Override
-    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        return false;
-    }
-
-    @Override
-    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        return false;
-    }
-
-    @Override
-    public boolean touchDragged(int screenX, int screenY, int pointer) {
-        return false;
-    }
-
-    @Override
-    public boolean mouseMoved(int screenX, int screenY) {
-        processMapNavigation(screenX, screenY);
-        return true;
-    }
-
-    @Override
-    public boolean scrolled(float amountX, float amountY) {
-        if (Float.compare(camera.zoom, ZOOM_MAX) >= 0) {
-            camera.zoom = ZOOM_MAX - 1.0f / ZOOM_DIVIDER;
-        } else if (Float.compare(camera.zoom, ZOOM_MIN) <= 0) {
-            camera.zoom = ZOOM_MIN + 1.0f / ZOOM_DIVIDER;
-        }
-        if (Float.compare(camera.zoom, ZOOM_MAX) < 0
-                && Float.compare(camera.zoom, ZOOM_MIN) > 0) {
-            camera.zoom += amountY / ZOOM_DIVIDER;
-        }
-        return true;
-    }
-
-    private void processMapNavigation(int screenX, int screenY) {
-        if (screenY > 0 && screenX > 0) {
-            if (screenX < EDGE_PX) {
-                if (screenY > camera.viewportHeight - EDGE_PX) {
-                    camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
-                            camera.position.y - DELTA_PX, 0), 0.1f);
-                } else if (screenY < EDGE_PX) {
-                    camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
-                            camera.position.y + DELTA_PX, 0), 0.1f);
-                } else {
-                    camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
-                            camera.position.y, 0), 0.1f);
-                }
-            } else if (screenX > camera.viewportWidth - EDGE_PX) {
-                if (screenY < EDGE_PX) {
-                    camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
-                            camera.position.y + DELTA_PX, 0), 0.1f);
-                } else if (screenY > camera.viewportHeight - EDGE_PX) {
-                    camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
-                            camera.position.y - DELTA_PX, 0), 0.1f);
-                } else {
-                    camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
-                            camera.position.y, 0), 0.1f);
-                }
-            } else if (screenY < EDGE_PX) {
-                camera.position.lerp(new Vector3(camera.position.x,
-                        camera.position.y + DELTA_PX, 0), 0.1f);
-            } else if (screenY > camera.viewportHeight - EDGE_PX) {
-                camera.position.lerp(new Vector3(camera.position.x,
-                        camera.position.y - DELTA_PX, 0), 0.1f);
-            }
-        }
-    }
+//    @Override
+//    public boolean keyDown(int keycode) {
+//        float x = camera.position.x;
+//        float y = camera.position.y;
+//        if (keys.contains(A)) {
+//            camera.position.lerp(new Vector3(x - DELTA_PX, y, 0), 0.1f);
+//        }
+//        if (keys.contains(W)) {
+//            camera.position.lerp(new Vector3(x, y + DELTA_PX, 0), 0.1f);
+//        }
+//        if (keys.contains(D)) {
+//            camera.position.lerp(new Vector3(x + DELTA_PX, y, 0), 0.1f);
+//        }
+//        if (keys.contains(S)) {
+//            camera.position.lerp(new Vector3(x, y - DELTA_PX, 0), 0.1f);
+//        }
+//        return true;
+//    }
+//
+//    @Override
+//    public boolean keyUp(int keycode) {
+//        if (this.keys.contains(keycode)) {
+//            this.keys.remove(keycode);
+//        }
+//        return true;
+//    }
+//
+//    @Override
+//    public boolean keyTyped(char character) {
+//        return false;
+//    }
+//
+//    @Override
+//    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+//        return false;
+//    }
+//
+//    @Override
+//    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+//        return false;
+//    }
+//
+//    @Override
+//    public boolean touchDragged(int screenX, int screenY, int pointer) {
+//        return false;
+//    }
+//
+//    @Override
+//    public boolean mouseMoved(int screenX, int screenY) {
+//        processMapNavigation(screenX, screenY);
+//        return true;
+//    }
+//
+//    @Override
+//    public boolean scrolled(float amountX, float amountY) {
+//        OrthographicCamera camera = (OrthographicCamera) controlStage.getCamera();
+//        if (Float.compare(camera.zoom, ZOOM_MAX) >= 0) {
+//            camera.zoom = ZOOM_MAX - 1.0f / ZOOM_DIVIDER;
+//        } else if (Float.compare(camera.zoom, ZOOM_MIN) <= 0) {
+//            camera.zoom = ZOOM_MIN + 1.0f / ZOOM_DIVIDER;
+//        }
+//        if (Float.compare(camera.zoom, ZOOM_MAX) < 0
+//                && Float.compare(camera.zoom, ZOOM_MIN) > 0) {
+//            camera.zoom += amountY / ZOOM_DIVIDER;
+//        }
+//        return true;
+//    }
+//
+//    private void processMapNavigation(int screenX, int screenY) {
+//        if (screenY > 0 && screenX > 0) {
+//            if (screenX < EDGE_PX) {
+//                if (screenY > camera.viewportHeight - EDGE_PX) {
+//                    camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
+//                            camera.position.y - DELTA_PX, 0), 0.1f);
+//                } else if (screenY < EDGE_PX) {
+//                    camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
+//                            camera.position.y + DELTA_PX, 0), 0.1f);
+//                } else {
+//                    camera.position.lerp(new Vector3(camera.position.x - DELTA_PX,
+//                            camera.position.y, 0), 0.1f);
+//                }
+//            } else if (screenX > camera.viewportWidth - EDGE_PX) {
+//                if (screenY < EDGE_PX) {
+//                    camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
+//                            camera.position.y + DELTA_PX, 0), 0.1f);
+//                } else if (screenY > camera.viewportHeight - EDGE_PX) {
+//                    camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
+//                            camera.position.y - DELTA_PX, 0), 0.1f);
+//                } else {
+//                    camera.position.lerp(new Vector3(camera.position.x + DELTA_PX,
+//                            camera.position.y, 0), 0.1f);
+//                }
+//            } else if (screenY < EDGE_PX) {
+//                camera.position.lerp(new Vector3(camera.position.x,
+//                        camera.position.y + DELTA_PX, 0), 0.1f);
+//            } else if (screenY > camera.viewportHeight - EDGE_PX) {
+//                camera.position.lerp(new Vector3(camera.position.x,
+//                        camera.position.y - DELTA_PX, 0), 0.1f);
+//            }
+//        }
+//    }
 
     private void processKeyDown() {
         int keyDown = Gdx.app.getInput().isKeyPressed(A) ? A
@@ -265,10 +277,7 @@ public class MapScreen implements Screen, InputProcessor {
                 : Gdx.app.getInput().isKeyPressed(S) ? S
                 : -1;
         if (keyDown != -1) {
-            if (!keys.contains(keyDown)) {
-                keys.add(keyDown);
-            }
-            keyDown(keyDown);
+            controlListener.keyDown(keyDown);
         }
     }
 
@@ -305,10 +314,10 @@ public class MapScreen implements Screen, InputProcessor {
         }
     }
 
-    private void processControlContainer() {
-        controlContainer.setPosition(viewport.getScreenX(),
-                viewport.getScreenY());
-    }
+//    private void processControlContainer() {
+//        controlContainer.setPosition(viewport.getScreenX(),
+//                viewport.getScreenY());
+//    }
 
     private void initializeData() {
         personDao = new PersonFileDao();
@@ -329,6 +338,8 @@ public class MapScreen implements Screen, InputProcessor {
             cityMap = new Pixmap(Gdx.files.internal(defaultCity.getMapPath()));
             drawCityBorders();
             cityMapTexture = new Texture(cityMap);
+            worldWidth = cityMap.getWidth() + 500f;
+            worldHeight = cityMap.getHeight() + 500f;
         }
     }
 }

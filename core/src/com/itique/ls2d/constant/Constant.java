@@ -8,9 +8,10 @@ public abstract class Constant {
     public static final String HERO_START_CITY_ID_KEY = "START_CITY_ID";
 
     // data
-    public static final String WORLDS_DATA = "data/worlds.json";
-    public static final String HUMANS_DATA = "data/humans.json";
-    public static final String CITIES_DATA = "data/cities.json";
+    public static final String WORLDS_DATA = "data/user/worlds.json";
+    public static final String HUMANS_DATA = "data/user/humans.json";
+    public static final String CITIES_DATA = "data/user/cities.json";
+    public static final String DIALOG_DATA = "data/game/dialogs.json";
 
     // textures
     // it is supposed that 10 = 1 meter
