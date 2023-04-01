@@ -9,8 +9,8 @@ public class DesktopLauncher {
 		Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
 		config.setForegroundFPS(60);
 		config.setTitle("Life Simulator 2D");
-		config.setWindowedMode(640, 480);
-		config.setWindowSizeLimits(640, 480, 1920, 1080);
+		config.setWindowedMode(1000, 800);
+		config.setResizable(false);
 		new Lwjgl3Application(new LifeSimulator2D(), config);
 	}
 }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Map>
+    <Building type="OFFICE">
+        <X>120</X>
+        <Y>50</Y>
+        <Width>20</Width>
+        <Height>40</Height>
+    </Building>
+</Map>
