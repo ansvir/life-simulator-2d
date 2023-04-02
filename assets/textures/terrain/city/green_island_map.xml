@@ -1,9 +1,31 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Map>
-    <Building type="OFFICE">
-        <X>120</X>
-        <Y>50</Y>
-        <Width>20</Width>
-        <Height>40</Height>
-    </Building>
+    <Name>Green Island City</Name>
+    <Buildings>
+        <Building type="OFFICE">
+            <XStart>120</XStart>
+            <YStart>50</YStart>
+            <Width>20</Width>
+            <Height>40</Height>
+        </Building>
+    </Buildings>
+    <Roads>
+        <Road type="STRAIGHT">
+            <XStart>130</XStart>
+            <YStart>80</YStart>
+            <Direction>RIGHT</Direction>
+            <Length>200</Length>
+        </Road>
+        <Road type="DIAGONAL">
+            <XStart>568</XStart>
+            <YStart>122</YStart>
+            <Direction>TOP_LEFT_BOTTOM_RIGHT</Direction>
+            <Length>40</Length>
+        </Road>
+        <Road type="PART">
+            <XStart>128</XStart>
+            <YStart></YStart>
+        </Road>
+    </Roads>
+    <MapImageBase64>Ff89dfsKL=djksaklDShHd12iuhn321uhDSA+=</MapImageBase64>
 </Map>

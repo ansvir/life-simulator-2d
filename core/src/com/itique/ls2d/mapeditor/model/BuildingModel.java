@@ -2,20 +2,26 @@ package com.itique.ls2d.mapeditor.model;
 
 import com.itique.ls2d.model.world.BuildingType;
 
-public class BuildingModel {
+import java.io.Serializable;
+
+public class BuildingModel implements Serializable {
 
     private BuildingType type;
-    private float x;
-    private float y;
+    private float xStart;
+    private float yStart;
     private float width;
     private float height;
 
-    public BuildingModel(BuildingType type, float x, float y, float width, float height) {
+    public BuildingModel(BuildingType type, float xStart, float yStart, float width, float height) {
         this.type = type;
-        this.x = x;
-        this.y = y;
+        this.xStart = xStart;
+        this.yStart = yStart;
         this.width = width;
         this.height = height;
+    }
+
+    public BuildingModel() {
+        // serialization constructor
     }
 
     public BuildingType getType() {
@@ -26,20 +32,20 @@ public class BuildingModel {
         this.type = type;
     }
 
-    public float getX() {
-        return x;
+    public float getxStart() {
+        return xStart;
     }
 
-    public void setX(float x) {
-        this.x = x;
+    public void setxStart(float xStart) {
+        this.xStart = xStart;
     }
 
-    public float getY() {
-        return y;
+    public float getyStart() {
+        return yStart;
     }
 
-    public void setY(float y) {
-        this.y = y;
+    public void setyStart(float yStart) {
+        this.yStart = yStart;
     }
 
     public float getWidth() {

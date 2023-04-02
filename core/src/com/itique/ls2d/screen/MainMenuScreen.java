@@ -22,7 +22,14 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.itique.ls2d.LifeSimulator2D;
+import com.itique.ls2d.mapeditor.model.BuildingModel;
+import com.itique.ls2d.mapeditor.model.MapModel;
+import com.itique.ls2d.mapeditor.model.RoadModel;
 import com.itique.ls2d.mapeditor.screen.MenuScreen;
+import com.itique.ls2d.model.world.BuildingType;
+import com.itique.ls2d.service.file.MapModelFileDao;
+
+import java.util.List;
 
 import static com.itique.ls2d.constant.Constant.CITIES_DATA;
 import static com.itique.ls2d.constant.Constant.FIRST_PLAY_KEY;
@@ -57,6 +64,14 @@ public class MainMenuScreen implements Screen {
 
     @Override
     public void show() {
+        BuildingModel buildingOne = new BuildingModel(BuildingType.OFFICE, 123f, 123f, 123f, 123f);
+        BuildingModel buildingTwo = new BuildingModel(BuildingType.LIVING, 321f, 321f, 321f, 321f);
+        RoadModel roadOne = new RoadModel(123f, 123f, 120L, RoadModel.Type.STRAIGHT, RoadModel.Direction.LEFT);
+        RoadModel roadTwo = new RoadModel(321f, 321f, 250L, RoadModel.Type.DIAGONAL, RoadModel.Direction.TOP_LEFT_BOTTOM_RIGHT);
+        MapModel map = new MapModel("Some Map", List.of(roadOne, roadTwo), List.of(buildingOne, buildingTwo), "DSADASDASADSDSADASDSAADS");
+        MapModelFileDao dao = new MapModelFileDao();
+//        dao.save(map);
+        dao.findAll().forEach(m -> System.out.println(m.getId()));
         Gdx.input.setInputProcessor(stage);
         bgMusic.setLooping(true);
         bgMusic.play();
@@ -88,6 +103,7 @@ public class MainMenuScreen implements Screen {
                 public void clicked(InputEvent event, float x, float y) {
 //                    Gdx.app.getPreferences("global").putBoolean("FIRST_PLAY", true);
 //                    Gdx.app.getPreferences("global").flush();
+                    clickSound.play();
                     bgMusic.stop();
                     game.setScreen(new CityScreen(game));
                 }
@@ -99,6 +115,8 @@ public class MainMenuScreen implements Screen {
         mapEditor.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                clickSound.play();
+                bgMusic.stop();
                 game.setScreen(new MenuScreen(game));
             }
         });

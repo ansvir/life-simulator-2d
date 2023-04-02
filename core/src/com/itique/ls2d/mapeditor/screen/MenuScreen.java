@@ -60,6 +60,8 @@ public class MenuScreen implements Screen {
         back.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                clickSound.play();
+                bgMusic.stop();
                 game.setScreen(new MainMenuScreen(game));
             }
         });
