@@ -55,6 +55,12 @@ public class MenuScreen implements Screen {
     @Override
     public void show() {
         newMap = new TextButton("NEW", skin);
+        newMap.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                game.setScreen(new EditorScreen(game));
+            }
+        });
         loadMap = new TextButton("LOAD", skin);
         back = new TextButton("BACK", skin);
         back.addListener(new ClickListener() {

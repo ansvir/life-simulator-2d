@@ -17,7 +17,7 @@ import com.itique.ls2d.model.timeline.TimeLineTask;
 import static com.badlogic.gdx.Input.Keys.*;
 import static com.badlogic.gdx.Input.Keys.S;
 
-public class ControlListener implements InputProcessor, Disposable {
+public class ControlListener implements InputProcessor {
 
     private static final int DELTA_PX = 20;
     private static final int EDGE_PX = 15;
@@ -28,8 +28,8 @@ public class ControlListener implements InputProcessor, Disposable {
     private final Stage stage;
     private final IntSet keys;
 
-    public ControlListener(Viewport viewport) {
-        stage = new Stage(viewport);
+    public ControlListener(Stage stage) {
+        this.stage = stage;
         keys = new IntSet();
     }
 
@@ -53,7 +53,7 @@ public class ControlListener implements InputProcessor, Disposable {
         if (keys.contains(S)) {
             camera.position.lerp(new Vector3(x, y - DELTA_PX, 0), 0.1f);
         }
-        return true;
+        return false;
     }
 
     @Override
@@ -61,7 +61,7 @@ public class ControlListener implements InputProcessor, Disposable {
         if (this.keys.contains(keycode)) {
             this.keys.remove(keycode);
         }
-        return true;
+        return false;
     }
 
     @Override
@@ -87,7 +87,7 @@ public class ControlListener implements InputProcessor, Disposable {
     @Override
     public boolean mouseMoved(int screenX, int screenY) {
         processMapNavigation(screenX, screenY);
-        return true;
+        return false;
     }
 
     @Override
@@ -102,7 +102,7 @@ public class ControlListener implements InputProcessor, Disposable {
                 && Float.compare(camera.zoom, ZOOM_MIN) > 0) {
             camera.zoom += amountY / ZOOM_DIVIDER;
         }
-        return true;
+        return false;
     }
 
     private void processMapNavigation(int screenX, int screenY) {
@@ -140,24 +140,4 @@ public class ControlListener implements InputProcessor, Disposable {
         }
     }
 
-    public void addActor(Actor actor) {
-        stage.addActor(actor);
-    }
-
-    public void draw() {
-        stage.draw();
-    }
-
-    public void act(float delta) {
-        stage.act(delta);
-    }
-
-    public Stage getStage() {
-        return stage;
-    }
-
-    @Override
-    public void dispose() {
-        stage.dispose();
-    }
 }

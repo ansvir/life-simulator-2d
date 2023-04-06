@@ -55,6 +55,7 @@ public class MapScreen implements Screen {
 
     private Game game;
     private Skin skin;
+    private Stage stage;
     private TextureAtlas atlas;
     private CityMapActor cityMapActor;
     private Viewport viewport;
@@ -88,7 +89,8 @@ public class MapScreen implements Screen {
         skin = new Skin(Gdx.files.internal("skins/plain-j/plain-james.json"), atlas);
         camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         viewport = new ExtendViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
-        controlListener = new ControlListener(viewport);
+        stage = new Stage(viewport);
+        controlListener = new ControlListener(stage);
         time = new Label("00:00", skin);
         controlTable = new Table();
         controlTable.setFillParent(true);
@@ -115,8 +117,8 @@ public class MapScreen implements Screen {
         DialogEvent dialogEvent = new DialogEvent();
         dialogEvent.startDialog();
         chat.startChat(dialogEvent, hero);
-        controlListener.addActor(cityMapActor);
-        controlListener.addActor(controlContainer);
+        stage.addActor(cityMapActor);
+        stage.addActor(controlContainer);
     }
 
     @Override
@@ -126,15 +128,14 @@ public class MapScreen implements Screen {
         processTimLine();
         processKeyDown();
         controlListener.mouseMoved(Gdx.input.getX(), Gdx.input.getY());
-        controlListener.act(delta);
-        controlListener.draw();
+        stage.act(delta);
+        stage.draw();
         camera.update();
     }
 
     @Override
     public void resize(int width, int height) {
-        controlListener.getStage()
-                .getViewport().update(width, height, true);
+        stage.getViewport().update(width, height, true);
         camera.viewportWidth = width;
         camera.viewportHeight = height;
     }
@@ -156,7 +157,6 @@ public class MapScreen implements Screen {
 
     @Override
     public void dispose() {
-        controlListener.dispose();
         skin.dispose();
         atlas.dispose();
         terrainPixmaps.values().forEach(Pixmap::dispose);

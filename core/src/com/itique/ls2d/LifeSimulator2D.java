@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.itique.ls2d.screen.MainMenuScreen;
+import com.itique.ls2d.mapeditor.screen.EditorScreen;
 
 public class LifeSimulator2D extends Game {
 
@@ -16,7 +17,7 @@ public class LifeSimulator2D extends Game {
 		pixmap = new Pixmap(Gdx.files.internal("textures/cursor.png"));
 		Cursor cursor = Gdx.graphics.newCursor(pixmap, 0, 0);
 		Gdx.graphics.setCursor(cursor);
-		this.setScreen(new MainMenuScreen(this));
+		this.setScreen(new EditorScreen(this));
 	}
 
 	@Override
