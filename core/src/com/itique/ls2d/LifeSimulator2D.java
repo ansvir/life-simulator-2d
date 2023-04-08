@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.itique.ls2d.screen.MainMenuScreen;
 import com.itique.ls2d.mapeditor.screen.EditorScreen;
+import com.itique.ls2d.screen.MapScreen;
 
 public class LifeSimulator2D extends Game {
 

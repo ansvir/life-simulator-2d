@@ -25,7 +25,9 @@ import com.badlogic.gdx.utils.viewport.*;
 import com.itique.ls2d.constant.world.DefaultCity;
 import com.itique.ls2d.custom.actor.CityMapActor;
 import com.itique.ls2d.custom.component.ChatComponent;
+import com.itique.ls2d.custom.component.style.MapStyle;
 import com.itique.ls2d.custom.listener.ControlListener;
+import com.itique.ls2d.custom.listener.MapNavigationListener;
 import com.itique.ls2d.model.Man;
 import com.itique.ls2d.model.timeline.TimeLineTask;
 import com.itique.ls2d.model.world.City;
@@ -80,7 +82,7 @@ public class MapScreen implements Screen {
     private Music bgMusic;
     private float worldWidth;
     private float worldHeight;
-    private final ControlListener controlListener;
+    private final MapNavigationListener mapNavigationListener;
 
     public MapScreen(Game game) {
         this.game = game;
@@ -90,7 +92,7 @@ public class MapScreen implements Screen {
         camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         viewport = new ExtendViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), camera);
         stage = new Stage(viewport);
-        controlListener = new ControlListener(stage);
+        mapNavigationListener = new MapNavigationListener(camera, stage, new MapStyle());
         time = new Label("00:00", skin);
         controlTable = new Table();
         controlTable.setFillParent(true);
@@ -109,7 +111,7 @@ public class MapScreen implements Screen {
 
     @Override
     public void show() {
-        Gdx.input.setInputProcessor(controlListener);
+        Gdx.input.setInputProcessor(mapNavigationListener);
         timeline = new TimeLineTask(500L);
         timeString = asyncExecutor.submit(timeline);
         bgMusic.setLooping(true);
@@ -124,10 +126,9 @@ public class MapScreen implements Screen {
     @Override
     public void render(float delta) {
         ScreenUtils.clear(Color.valueOf("178693"));
-        Gdx.input.setInputProcessor(controlListener);
         processTimLine();
         processKeyDown();
-        controlListener.mouseMoved(Gdx.input.getX(), Gdx.input.getY());
+        mapNavigationListener.mouseMoved(Gdx.input.getX(), Gdx.input.getY());
         stage.act(delta);
         stage.draw();
         camera.update();
@@ -277,7 +278,7 @@ public class MapScreen implements Screen {
                 : Gdx.app.getInput().isKeyPressed(S) ? S
                 : -1;
         if (keyDown != -1) {
-            controlListener.keyDown(keyDown);
+            mapNavigationListener.keyDown(keyDown);
         }
     }
 

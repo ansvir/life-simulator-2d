@@ -1,50 +1,70 @@
 package com.itique.ls2d.custom.component;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Cursor;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Matrix4;
-import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
+import com.badlogic.gdx.scenes.scene2d.ui.SplitPane;
 import com.badlogic.gdx.utils.Disposable;
-import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.badlogic.gdx.utils.viewport.Viewport;
+import com.itique.ls2d.util.ResourceUtil;
 
-public class SplitComponent extends Actor implements InputProcessor, Disposable {
+public class SplitComponent extends SplitPane implements Disposable {
 
-    private static final float WIDTH = 6f;
+    private static final float WIDTH = 4f;
     private Actor first;
     private Actor second;
-    private InputProcessor firstInputProcessor;
-    private InputProcessor secondInputProcessor;
-    private Stage stage;
-    private ShapeRenderer renderer;
-    private float xPos;
+    private float lastXPos;
+    private float startXPos;
     private float paneStart;
     private float paneEnd;
     private boolean isDragging;
     private Pixmap cursorPixmap;
     private Cursor cursor;
+    private ShapeRenderer renderer;
 
-    public SplitComponent(Actor first, Actor second, InputProcessor firstInputProcessor, InputProcessor secondInputProcessor, Stage stage) {
+    public SplitComponent(Actor first, Actor second) {
+        super(first, second, false, ResourceUtil.getDefaultSkin());
         this.first = first;
         this.second = second;
-        this.firstInputProcessor = firstInputProcessor;
-        this.secondInputProcessor = secondInputProcessor;
-        this.stage = stage;
-        stage.addActor(first);
-        stage.addActor(second);
-        renderer = new ShapeRenderer();
-        xPos = Gdx.graphics.getWidth() / 2f;
-        paneStart = xPos - WIDTH / 2f;
-        paneEnd = xPos + WIDTH / 2f;
+        this.renderer = new ShapeRenderer();
+        this.setSplitAmount(0.5f);
+        lastXPos = this.getWidth() / 2;
+        paneStart = lastXPos - WIDTH / 2f;
+        paneEnd = lastXPos + WIDTH / 2f;
         isDragging = false;
         cursorPixmap = new Pixmap(Gdx.files.internal("textures/cursor.png"));
         cursor = Gdx.graphics.newCursor(cursorPixmap, 0, 0);
+        addListener(new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                if (isHoverPane(x)) {
+                    isDragging = true;
+                }
+                return true;
+            }
+
+            @Override
+            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                if (isDragging) {
+                    isDragging = false;
+                }
+            }
+
+            @Override
+            public void touchDragged(InputEvent event, float x, float y, int pointer) {
+                if (isDragging) {
+                    paneStart = x - WIDTH / 2f;
+                    paneEnd = x + WIDTH / 2f;
+                    calculateSplit((int) x);
+                }
+            }
+        });
     }
 
     @Override
@@ -52,94 +72,93 @@ public class SplitComponent extends Actor implements InputProcessor, Disposable 
         batch.end();
         renderer.begin(ShapeRenderer.ShapeType.Filled);
         renderer.setColor(Color.BLACK);
-        renderer.rect(xPos, 0f, WIDTH, Gdx.graphics.getHeight());
+        renderer.rect(lastXPos, 0f, WIDTH, Math.max(first.getHeight(), second.getHeight()));
         renderer.end();
         batch.begin();
         float pointerX = Gdx.input.getX();
         if (pointerX < paneStart) {
-            Gdx.input.setInputProcessor(firstInputProcessor);
             Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Crosshair);
-//            stage.getViewport().setScreenBounds( 0, 0, (int) paneStart - 1, Gdx.graphics.getHeight());
-//            batch.setProjectionMatrix(stage.getViewport().getCamera().combined);
         } else if (pointerX > paneEnd) {
-            Gdx.input.setInputProcessor(secondInputProcessor);
             Gdx.graphics.setCursor(cursor);
-//            stage.getViewport().setScreenBounds((int) paneEnd + 1, 0, Gdx.graphics.getWidth() - (int) paneEnd ,Gdx.graphics.getHeight());
-//            batch.setProjectionMatrix(stage.getViewport().getCamera().combined);
         } else {
-            Gdx.input.setInputProcessor(this);
             Gdx.graphics.setSystemCursor(Cursor.SystemCursor.HorizontalResize);
         }
         second.setX(paneEnd + 1);
-//        Matrix4 projection = stage.getCamera().projection;
-//        float screenWidth = stage.getViewport().getScreenWidth();
-//        float screenHeight = stage.getViewport().getScreenHeight();
-//        second.setWidth(projection.getScaleX() * screenWidth * 2 - paneEnd - 1);
-//        second.setHeight(projection.getScaleY() * screenHeight * 2);
-        second.setWidth(stage.getViewport().getScreenWidth() - paneEnd - 1);
-        second.setHeight(stage.getViewport().getScreenHeight());
+        first.draw(batch, parentAlpha);
+        second.draw(batch, parentAlpha);
     }
 
     public boolean isHoverPane(float x) {
         return x >= paneStart && x <= paneEnd;
     }
 
-    @Override
-    public boolean keyDown(int keycode) {
-        return false;
-    }
-
-    @Override
-    public boolean keyUp(int keycode) {
-        return false;
-    }
-
-    @Override
-    public boolean keyTyped(char character) {
-        return false;
-    }
-
-    @Override
-    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        if (isHoverPane(screenX)) {
-            isDragging = true;
-        }
-        return true;
-    }
-
-    @Override
-    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        if (isDragging) {
-            isDragging = false;
-        }
-        return true;
-    }
-
-    @Override
-    public boolean touchDragged(int screenX, int screenY, int pointer) {
-        if (isDragging) {
-            xPos = Gdx.input.getX();
-            paneStart = xPos - WIDTH / 2f;
-            paneEnd = xPos + WIDTH / 2f;
-        }
-        return true;
-    }
-
-    @Override
-    public boolean mouseMoved(int screenX, int screenY) {
-        return false;
-    }
-
-    @Override
-    public boolean scrolled(float amountX, float amountY) {
-        return false;
-    }
+//    @Override
+//    public boolean keyDown(int keycode) {
+//        return false;
+//    }
+//
+//    @Override
+//    public boolean keyUp(int keycode) {
+//        return false;
+//    }
+//
+//    @Override
+//    public boolean keyTyped(char character) {
+//        return false;
+//    }
+//
+//    @Override
+//    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+//        if (isHoverPane(screenX)) {
+//            isDragging = true;
+//        }
+//        return true;
+//    }
+//
+//    @Override
+//    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+//        if (isDragging) {
+//            isDragging = false;
+//        }
+//        return true;
+//    }
+//
+//    @Override
+//    public boolean touchDragged(int screenX, int screenY, int pointer) {
+//        if (isDragging) {
+//            calculateSplit(screenX);
+//            xPos = Gdx.input.getX() < xPos ? Gdx.input.getX() - 1
+//                    : Gdx.input.getX() > xPos ? Gdx.input.getX() + 1 : xPos;
+//            paneStart = xPos - WIDTH / 2f;
+//            paneEnd = xPos + WIDTH / 2f;
+//        }
+//        return true;
+//    }
+//
+//    @Override
+//    public boolean mouseMoved(int screenX, int screenY) {
+//        return false;
+//    }
+//
+//    @Override
+//    public boolean scrolled(float amountX, float amountY) {
+//        return false;
+//    }
 
     @Override
     public void dispose() {
         cursorPixmap.dispose();
         cursor.dispose();
         renderer.dispose();
+    }
+
+    private void calculateSplit(int screenX) {
+        startXPos = this.getSplitAmount();
+        float delta = lastXPos < screenX ? -1 : 1;
+        float splitAmount = MathUtils.clamp(startXPos, 0, 1);
+        this.setSplitAmount(splitAmount + delta / (this.getWidth()));
+        second.setWidth((splitAmount <= 0.5 ? 1 - splitAmount : splitAmount) * (this.getWidth() - paneStart - 1));
+        lastXPos = screenX;
     }
 
 }
