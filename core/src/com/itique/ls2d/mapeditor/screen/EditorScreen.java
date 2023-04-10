@@ -50,8 +50,6 @@ public class EditorScreen implements Screen, InputProcessor {
     private SpriteBatch batch;
     private InputMultiplexer multiplexer;
     private boolean isOnToolbarFocus;
-    private Vector2 newMousePosition;
-    private Vector2 prevMousePosition;
 
     public EditorScreen(Game game) {
         this.game = game;
@@ -84,8 +82,6 @@ public class EditorScreen implements Screen, InputProcessor {
         uiStage.addActor(mainContainer);
         multiplexer = new InputMultiplexer(this, uiStage, mapStage);
         Gdx.input.setInputProcessor(multiplexer);
-        newMousePosition = new Vector2(Gdx.input.getX(), Gdx.input.getY());
-        prevMousePosition = newMousePosition.cpy();
     }
 
     @Override
@@ -106,7 +102,7 @@ public class EditorScreen implements Screen, InputProcessor {
 //            Gdx.input.setInputProcessor(mapStage);
 //            System.out.println("MAP ACTOR");
 //        }
-        updateMouseMove();
+        mouseMoved(Gdx.input.getX(), Gdx.input.getY());
         int key = getKeyDown();
         if (key != -1) {
             keyDown(key);
@@ -180,13 +176,6 @@ public class EditorScreen implements Screen, InputProcessor {
 //            mapPixmap.drawPixel(drawX, mapPixmap.getHeight() - 1);
 //        }
 //    }
-
-    private void updateMouseMove() {
-        if (!(prevMousePosition.x == newMousePosition.x
-                && prevMousePosition.y == newMousePosition.y)) {
-            mouseMoved(Gdx.input.getX(), Gdx.input.getY());
-        }
-    }
 
     private void createToolbar() {
         Label mapNameLabel = new Label("NAME", skin);
@@ -336,8 +325,6 @@ public class EditorScreen implements Screen, InputProcessor {
         mouseMoved.setStage(mapStage);
         mouseMoved.setStageX(screenX);
         mouseMoved.setStageY(screenY);
-        newMousePosition.x = screenX;
-        newMousePosition.y = screenY;
         return mapActor.fire(mouseMoved);
     }
 
