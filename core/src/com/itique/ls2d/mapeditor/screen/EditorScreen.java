@@ -7,11 +7,13 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.FocusListener;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
@@ -47,6 +49,9 @@ public class EditorScreen implements Screen, InputProcessor {
     private Table toolbarTable;
     private SpriteBatch batch;
     private InputMultiplexer multiplexer;
+    private boolean isOnToolbarFocus;
+    private Vector2 newMousePosition;
+    private Vector2 prevMousePosition;
 
     public EditorScreen(Game game) {
         this.game = game;
@@ -79,6 +84,8 @@ public class EditorScreen implements Screen, InputProcessor {
         uiStage.addActor(mainContainer);
         multiplexer = new InputMultiplexer(this, uiStage, mapStage);
         Gdx.input.setInputProcessor(multiplexer);
+        newMousePosition = new Vector2(Gdx.input.getX(), Gdx.input.getY());
+        prevMousePosition = newMousePosition.cpy();
     }
 
     @Override
@@ -99,7 +106,7 @@ public class EditorScreen implements Screen, InputProcessor {
 //            Gdx.input.setInputProcessor(mapStage);
 //            System.out.println("MAP ACTOR");
 //        }
-        mouseMoved(Gdx.input.getX(), Gdx.input.getY());
+        updateMouseMove();
         int key = getKeyDown();
         if (key != -1) {
             keyDown(key);
@@ -174,6 +181,13 @@ public class EditorScreen implements Screen, InputProcessor {
 //        }
 //    }
 
+    private void updateMouseMove() {
+        if (!(prevMousePosition.x == newMousePosition.x
+                && prevMousePosition.y == newMousePosition.y)) {
+            mouseMoved(Gdx.input.getX(), Gdx.input.getY());
+        }
+    }
+
     private void createToolbar() {
         Label mapNameLabel = new Label("NAME", skin);
         Label mapWidthLabel = new Label("WIDTH", skin);
@@ -241,32 +255,28 @@ public class EditorScreen implements Screen, InputProcessor {
                 : -1;
     }
 
-    private boolean isHoverToolbar() {
-        System.out.println(Gdx.input.getX() >= mainContainer.getX()
-                && Gdx.input.getX() <= mainContainer.getX() + mainContainer.getWidth()
-                && Gdx.input.getY() >= mainContainer.getY()
-                && Gdx.input.getY() <= mainContainer.getY() - mainContainer.getHeight());
-        return Gdx.input.getX() >= mainContainer.getX()
-                && Gdx.input.getX() <= mainContainer.getX() + mainContainer.getWidth()
-                && Gdx.input.getY() >= mainContainer.getY()
-                && Gdx.input.getY() <= mainContainer.getY() - mainContainer.getHeight();
-    }
+//    private boolean isToolbarFieldFocus() {
+//        return isOnToolbarFocus;
+////        return Gdx.input.getX() >= mainContainer.getX()
+////                && Gdx.input.getX() <= mainContainer.getX() + mainContainer.getWidth()
+////                && Gdx.input.getY() >= mainContainer.getY()
+////                && Gdx.input.getY() <= mainContainer.getY() + mainContainer.getHeight();
+//    }
 
     @Override
     public boolean keyDown(int keycode) {
-        int key = getKeyDown();
-        if (key != -1 && !isHoverToolbar()) {
+        if (keycode != -1 && !isOnToolbarFocus) {
             InputEvent keyTyped = new InputEvent();
             keyTyped.setType(InputEvent.Type.keyDown);
             keyTyped.setStage(mapStage);
-            keyTyped.setKeyCode(key);
+            keyTyped.setKeyCode(keycode);
             mapActor.fire(keyTyped);
         }
-        if (isHoverToolbar()) {
+        if (isOnToolbarFocus) {
             InputEvent keyTyped = new InputEvent();
             keyTyped.setType(InputEvent.Type.keyDown);
             keyTyped.setStage(uiStage);
-            keyTyped.setKeyCode(key);
+            keyTyped.setKeyCode(keycode);
             mainContainer.fire(keyTyped);
         }
         return true;
@@ -274,15 +284,17 @@ public class EditorScreen implements Screen, InputProcessor {
 
     @Override
     public boolean keyUp(int keycode) {
-        int key = getKeyDown();
-        if (key != -1 && !isHoverToolbar()) {
+        if (keycode == -2) {
+            return false;
+        }
+        if (!isOnToolbarFocus) {
             InputEvent keyUp = new InputEvent();
             keyUp.setType(InputEvent.Type.keyUp);
             keyUp.setStage(mapStage);
-            keyUp.setKeyCode(key);
+            keyUp.setKeyCode(keycode);
             mapActor.fire(keyUp);
         }
-        if (isHoverToolbar()) {
+        if (isOnToolbarFocus) {
             InputEvent keyUp = new InputEvent();
             keyUp.setType(InputEvent.Type.keyUp);
             keyUp.setStage(uiStage);
@@ -299,7 +311,12 @@ public class EditorScreen implements Screen, InputProcessor {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        return false;
+        if (mapStage.touchDown(screenX, screenY, pointer, button)) {
+            isOnToolbarFocus = false;
+        } else if (uiStage.touchDown(screenX, screenY, pointer, button)) {
+            isOnToolbarFocus = true;
+        }
+        return true;
     }
 
     @Override
@@ -314,20 +331,19 @@ public class EditorScreen implements Screen, InputProcessor {
 
     @Override
     public boolean mouseMoved(int screenX, int screenY) {
-        if (!isHoverToolbar()) {
-            InputEvent mouseMoved = new InputEvent();
-            mouseMoved.setType(InputEvent.Type.mouseMoved);
-            mouseMoved.setStage(mapStage);
-            mouseMoved.setStageX(screenX);
-            mouseMoved.setStageY(screenY);
-            mapActor.fire(mouseMoved);
-        }
-        return true;
+        InputEvent mouseMoved = new InputEvent();
+        mouseMoved.setType(InputEvent.Type.mouseMoved);
+        mouseMoved.setStage(mapStage);
+        mouseMoved.setStageX(screenX);
+        mouseMoved.setStageY(screenY);
+        newMousePosition.x = screenX;
+        newMousePosition.y = screenY;
+        return mapActor.fire(mouseMoved);
     }
 
     @Override
     public boolean scrolled(float amountX, float amountY) {
-        if (!isHoverToolbar()) {
+        if (!isOnToolbarFocus) {
             InputEvent scrolled = new InputEvent();
             scrolled.setType(InputEvent.Type.scrolled);
             scrolled.setStage(mapStage);
@@ -335,15 +351,16 @@ public class EditorScreen implements Screen, InputProcessor {
             scrolled.setStageY(Gdx.input.getY());
             scrolled.setScrollAmountY(amountY);
             mapActor.fire(scrolled);
+            return true;
         }
-        return true;
+        return false;
     }
 
     private void addTextChangeListener(TextField field, boolean text) {
         field.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                if (!isHoverToolbar()) {
+                if (!isOnToolbarFocus) {
                     event.cancel();
                 }
                 if (!text) {
@@ -353,6 +370,12 @@ public class EditorScreen implements Screen, InputProcessor {
                         event.cancel();
                     }
                 }
+            }
+        });
+        field.addListener(new InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                return true;
             }
         });
     }

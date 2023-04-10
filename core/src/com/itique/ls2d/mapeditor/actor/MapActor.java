@@ -126,7 +126,12 @@ public class MapActor extends Group {
                 if (isMoved) {
                     drawMapBorders();
                 }
-                return false;
+                return true;
+            }
+
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                return true;
             }
         });
     }
