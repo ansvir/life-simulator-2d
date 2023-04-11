@@ -128,11 +128,6 @@ public class MapActor extends Group {
                 }
                 return true;
             }
-
-            @Override
-            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                return true;
-            }
         });
     }
 

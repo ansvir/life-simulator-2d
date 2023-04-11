@@ -50,6 +50,7 @@ public class EditorScreen implements Screen, InputProcessor {
     private SpriteBatch batch;
     private InputMultiplexer multiplexer;
     private boolean isOnToolbarFocus;
+    private float scrolledY;
 
     public EditorScreen(Game game) {
         this.game = game;
@@ -73,11 +74,23 @@ public class EditorScreen implements Screen, InputProcessor {
         mapPixmap.fill();
         mapTexture = new Texture(mapPixmap);
         mapActor = new MapActor(mapTexture, mapWidth, mapHeight, camera);
+        mapActor.addListener(new ClickListener() {
+            @Override
+            public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
+                isOnToolbarFocus = false;
+            }
+        });
         terrainPixmaps = new DefaultGreenCity().getTerrainTexturesPaths()
                 .entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, v -> new Pixmap(Gdx.files.internal(v.getValue()))));
         createToolbar();
         mainContainer.add(toolBar).expand().fill().top().right();
+        mainContainer.addListener(new ClickListener() {
+            @Override
+            public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
+                isOnToolbarFocus = true;
+            }
+        });
         mapStage.addActor(mapActor);
         uiStage.addActor(mainContainer);
         multiplexer = new InputMultiplexer(this, uiStage, mapStage);
@@ -102,11 +115,12 @@ public class EditorScreen implements Screen, InputProcessor {
 //            Gdx.input.setInputProcessor(mapStage);
 //            System.out.println("MAP ACTOR");
 //        }
+//        int key = getKeyDown();
+//        if (key != -1) {
+//            keyDown(key);
+//        }
         mouseMoved(Gdx.input.getX(), Gdx.input.getY());
-        int key = getKeyDown();
-        if (key != -1) {
-            keyDown(key);
-        }
+        keyDown(getKeyDown());
         mainContainer.setSize(toolBar.getWidth(), toolBar.getHeight());
         batch.begin();
         uiStage.act(delta);
@@ -244,6 +258,10 @@ public class EditorScreen implements Screen, InputProcessor {
                 : -1;
     }
 
+    private boolean isMapMoveKey(int keycode) {
+        return keycode == A || keycode == W || keycode == D || keycode == S;
+    }
+
 //    private boolean isToolbarFieldFocus() {
 //        return isOnToolbarFocus;
 ////        return Gdx.input.getX() >= mainContainer.getX()
@@ -252,30 +270,131 @@ public class EditorScreen implements Screen, InputProcessor {
 ////                && Gdx.input.getY() <= mainContainer.getY() + mainContainer.getHeight();
 //    }
 
+//    @Override
+//    public boolean keyDown(int keycode) {
+//        if (keycode != -1 && !isOnToolbarFocus) {
+//            InputEvent keyTyped = new InputEvent();
+//            keyTyped.setType(InputEvent.Type.keyDown);
+//            keyTyped.setStage(mapStage);
+//            keyTyped.setKeyCode(keycode);
+//            mapActor.fire(keyTyped);
+//        }
+//        if (isOnToolbarFocus) {
+//            InputEvent keyTyped = new InputEvent();
+//            keyTyped.setType(InputEvent.Type.keyDown);
+//            keyTyped.setStage(uiStage);
+//            keyTyped.setKeyCode(keycode);
+//            mainContainer.fire(keyTyped);
+//        }
+//        return true;
+//    }
+
+//    @Override
+//    public boolean keyUp(int keycode) {
+//        if (keycode == -2) {
+//            return false;
+//        }
+//        if (!isOnToolbarFocus) {
+//            InputEvent keyUp = new InputEvent();
+//            keyUp.setType(InputEvent.Type.keyUp);
+//            keyUp.setStage(mapStage);
+//            keyUp.setKeyCode(keycode);
+//            mapActor.fire(keyUp);
+//        }
+//        if (isOnToolbarFocus) {
+//            InputEvent keyUp = new InputEvent();
+//            keyUp.setType(InputEvent.Type.keyUp);
+//            keyUp.setStage(uiStage);
+//            keyUp.setKeyCode(keycode);
+//            mainContainer.fire(keyUp);
+//        }
+//        return true;
+//    }
+//
+//    @Override
+//    public boolean keyTyped(char character) {
+//        return false;
+//    }
+//
+//    @Override
+//    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+//        if (mapStage.touchDown(screenX, screenY, pointer, button)) {
+//            isOnToolbarFocus = false;
+//        } else if (uiStage.touchDown(screenX, screenY, pointer, button)) {
+//            isOnToolbarFocus = true;
+//        }
+//        return true;
+//    }
+//
+//    @Override
+//    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+//        return false;
+//    }
+//
+//    @Override
+//    public boolean touchDragged(int screenX, int screenY, int pointer) {
+//        return false;
+//    }
+//
+//    @Override
+//    public boolean mouseMoved(int screenX, int screenY) {
+//        InputEvent mouseMoved = new InputEvent();
+//        mouseMoved.setType(InputEvent.Type.mouseMoved);
+//        mouseMoved.setStage(mapStage);
+//        mouseMoved.setStageX(screenX);
+//        mouseMoved.setStageY(screenY);
+//        return mapActor.fire(mouseMoved);
+//    }
+//
+//    @Override
+//    public boolean scrolled(float amountX, float amountY) {
+//        if (!isOnToolbarFocus) {
+//            InputEvent scrolled = new InputEvent();
+//            scrolled.setType(InputEvent.Type.scrolled);
+//            scrolled.setStage(mapStage);
+//            scrolled.setStageX(Gdx.input.getX());
+//            scrolled.setStageY(Gdx.input.getY());
+//            scrolled.setScrollAmountY(amountY);
+//            mapActor.fire(scrolled);
+//            return true;
+//        }
+//        return false;
+//    }
+
+    private void addTextChangeListener(TextField field, boolean text) {
+        field.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                if (!isOnToolbarFocus) {
+                    event.cancel();
+                }
+                if (!text) {
+                    try {
+                        if (!field.getText().isBlank()) {
+                            Long.parseLong(field.getText());
+                        }
+                    } catch (NumberFormatException e) {
+                        event.cancel();
+                    }
+                }
+            }
+        });
+    }
+
     @Override
     public boolean keyDown(int keycode) {
-        if (keycode != -1 && !isOnToolbarFocus) {
+        if (!isOnToolbarFocus && isMapMoveKey(keycode)) {
             InputEvent keyTyped = new InputEvent();
             keyTyped.setType(InputEvent.Type.keyDown);
             keyTyped.setStage(mapStage);
             keyTyped.setKeyCode(keycode);
             mapActor.fire(keyTyped);
         }
-        if (isOnToolbarFocus) {
-            InputEvent keyTyped = new InputEvent();
-            keyTyped.setType(InputEvent.Type.keyDown);
-            keyTyped.setStage(uiStage);
-            keyTyped.setKeyCode(keycode);
-            mainContainer.fire(keyTyped);
-        }
-        return true;
+        return false;
     }
 
     @Override
     public boolean keyUp(int keycode) {
-        if (keycode == -2) {
-            return false;
-        }
         if (!isOnToolbarFocus) {
             InputEvent keyUp = new InputEvent();
             keyUp.setType(InputEvent.Type.keyUp);
@@ -283,14 +402,7 @@ public class EditorScreen implements Screen, InputProcessor {
             keyUp.setKeyCode(keycode);
             mapActor.fire(keyUp);
         }
-        if (isOnToolbarFocus) {
-            InputEvent keyUp = new InputEvent();
-            keyUp.setType(InputEvent.Type.keyUp);
-            keyUp.setStage(uiStage);
-            keyUp.setKeyCode(keycode);
-            mainContainer.fire(keyUp);
-        }
-        return true;
+        return false;
     }
 
     @Override
@@ -300,12 +412,7 @@ public class EditorScreen implements Screen, InputProcessor {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        if (mapStage.touchDown(screenX, screenY, pointer, button)) {
-            isOnToolbarFocus = false;
-        } else if (uiStage.touchDown(screenX, screenY, pointer, button)) {
-            isOnToolbarFocus = true;
-        }
-        return true;
+        return false;
     }
 
     @Override
@@ -320,12 +427,15 @@ public class EditorScreen implements Screen, InputProcessor {
 
     @Override
     public boolean mouseMoved(int screenX, int screenY) {
-        InputEvent mouseMoved = new InputEvent();
-        mouseMoved.setType(InputEvent.Type.mouseMoved);
-        mouseMoved.setStage(mapStage);
-        mouseMoved.setStageX(screenX);
-        mouseMoved.setStageY(screenY);
-        return mapActor.fire(mouseMoved);
+        if (!isOnToolbarFocus) {
+            InputEvent mouseMoved = new InputEvent();
+            mouseMoved.setType(InputEvent.Type.mouseMoved);
+            mouseMoved.setStage(mapStage);
+            mouseMoved.setStageX(screenX);
+            mouseMoved.setStageY(screenY);
+            mapActor.fire(mouseMoved);
+        }
+        return false;
     }
 
     @Override
@@ -338,32 +448,7 @@ public class EditorScreen implements Screen, InputProcessor {
             scrolled.setStageY(Gdx.input.getY());
             scrolled.setScrollAmountY(amountY);
             mapActor.fire(scrolled);
-            return true;
         }
         return false;
-    }
-
-    private void addTextChangeListener(TextField field, boolean text) {
-        field.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                if (!isOnToolbarFocus) {
-                    event.cancel();
-                }
-                if (!text) {
-                    try {
-                        Long.parseLong(field.getText());
-                    } catch (NumberFormatException e) {
-                        event.cancel();
-                    }
-                }
-            }
-        });
-        field.addListener(new InputListener() {
-            @Override
-            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                return true;
-            }
-        });
     }
 }
