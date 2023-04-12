@@ -1,10 +1,11 @@
 package com.itique.ls2d.mapeditor.model;
 
+import com.itique.ls2d.model.Identifiable;
 import com.itique.ls2d.model.world.BuildingType;
 
 import java.io.Serializable;
 
-public class BuildingModel implements Serializable {
+public class BuildingModel extends Identifiable implements Serializable {
 
     private BuildingType type;
     private float xStart;
@@ -13,6 +14,15 @@ public class BuildingModel implements Serializable {
     private float height;
 
     public BuildingModel(BuildingType type, float xStart, float yStart, float width, float height) {
+        this.type = type;
+        this.xStart = xStart;
+        this.yStart = yStart;
+        this.width = width;
+        this.height = height;
+    }
+
+    public BuildingModel(String id, BuildingType type, float xStart, float yStart, float width, float height) {
+        super(id);
         this.type = type;
         this.xStart = xStart;
         this.yStart = yStart;

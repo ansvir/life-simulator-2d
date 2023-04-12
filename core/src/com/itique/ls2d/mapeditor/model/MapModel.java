@@ -1,19 +1,18 @@
 package com.itique.ls2d.mapeditor.model;
 
+import com.itique.ls2d.model.Identifiable;
+
 import java.io.Serializable;
 import java.util.List;
 import java.util.UUID;
 
-public class MapModel implements Serializable {
-
-    private String id;
+public class MapModel extends Identifiable implements Serializable {
     private String name;
     private List<RoadModel> roads;
     private List<BuildingModel> buildings;
     private String mapImageBase64;
 
     public MapModel(String name, List<RoadModel> roads, List<BuildingModel> buildings, String mapImageBase64) {
-        this.id = UUID.randomUUID().toString();
         this.name = name;
         this.roads = roads;
         this.buildings = buildings;
@@ -21,7 +20,7 @@ public class MapModel implements Serializable {
     }
 
     public MapModel(String id, String name, List<RoadModel> roads, List<BuildingModel> buildings, String mapImageBase64) {
-        this.id = id;
+        super(id);
         this.name = name;
         this.roads = roads;
         this.buildings = buildings;
@@ -30,14 +29,6 @@ public class MapModel implements Serializable {
 
     public MapModel() {
         // serialization constructor
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
     }
 
     public String getName() {

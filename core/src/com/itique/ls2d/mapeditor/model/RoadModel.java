@@ -1,8 +1,11 @@
 package com.itique.ls2d.mapeditor.model;
 
-import java.io.Serializable;
+import com.itique.ls2d.model.Identifiable;
 
-public class RoadModel implements Serializable {
+import java.io.Serializable;
+import java.util.UUID;
+
+public class RoadModel extends Identifiable implements Serializable {
 
     private float xStart;
     private float yStart;
@@ -11,6 +14,15 @@ public class RoadModel implements Serializable {
     private Direction direction;
 
     public RoadModel(float xStart, float yStart, long length, Type type, Direction direction) {
+        this.xStart = xStart;
+        this.yStart = yStart;
+        this.length = length;
+        this.type = type;
+        this.direction = direction;
+    }
+
+    public RoadModel(String id, float xStart, float yStart, long length, Type type, Direction direction) {
+        super(id);
         this.xStart = xStart;
         this.yStart = yStart;
         this.length = length;
