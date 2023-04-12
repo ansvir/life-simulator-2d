@@ -96,8 +96,9 @@ public class EditorScreen implements Screen, InputProcessor {
         createToolbar();
         createTopPane();
         mainContainer.add(topPane).expand().fill().height(Gdx.graphics.getHeight() / 8f).top();
-        mainContainer.row();
-        mainContainer.add(toolBar);
+        mainContainer.row().height(Gdx.graphics.getHeight() - topPane.getHeight());
+        mainContainer.add(toolBar).width(Gdx.graphics.getWidth() / 3.5f).right().top();
+
         toolBar.addListener(new ClickListener() {
             @Override
             public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
