@@ -11,11 +11,13 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
+import com.badlogic.gdx.scenes.scene2d.utils.Disableable;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Disposable;
 
 import java.util.ArrayList;
 
-public class MapActor extends Group {
+public class MapActor extends Group implements Disposable {
 
     private static final int BORDER_DIAPASON = 2;
     private Texture backgroundTexture;
@@ -134,7 +136,6 @@ public class MapActor extends Group {
         borders = new Pixmap((int) getWidth(), (int) getHeight(), Pixmap.Format.RGBA8888);
         borders.setColor(Color.RED);
         int dotSize = (int) (camera.zoom * 3f);
-        System.out.println(camera.zoom);
         for (int y = -BORDER_DIAPASON * dotSize; y <= backgroundTexture.getHeight(); y += BORDER_DIAPASON * dotSize) {
             borders.fillRectangle(0, y, dotSize, dotSize);
         }
@@ -152,4 +153,9 @@ public class MapActor extends Group {
         return bordersTexture;
     }
 
+    @Override
+    public void dispose() {
+        bordersTexture.dispose();
+        borders.dispose();
+    }
 }
