@@ -10,6 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.*;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
@@ -28,6 +29,8 @@ import java.util.stream.Collectors;
 import static com.badlogic.gdx.Input.Keys.*;
 
 public class EditorScreen implements Screen, InputProcessor {
+
+    private static final int BUFFER_SIZE = 10;
 
     private Game game;
     private Skin skin;
@@ -57,7 +60,7 @@ public class EditorScreen implements Screen, InputProcessor {
     private Pixmap brush;
     private float brushSize;
     private boolean isBrush;
-    private Table topPane;
+    private Window topPane;
 
     public EditorScreen(Game game) {
         this.game = game;
@@ -101,12 +104,12 @@ public class EditorScreen implements Screen, InputProcessor {
                 isOnUiFocus = true;
             }
         });
-        mainContainer.setSize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        mainContainer.setFillParent(true);
         mapStage.addActor(mapActor);
         uiStage.addActor(mainContainer);
         cursorPixmap = new Pixmap(Gdx.files.internal("textures/cursor.png"));
         cursor = Gdx.graphics.newCursor(cursorPixmap, 0, 0);
-        multiplexer = new InputMultiplexer(this, uiStage, mapStage);
+        multiplexer = new InputMultiplexer(this, mapStage, uiStage);
         Gdx.input.setInputProcessor(multiplexer);
         pixmapBuffer = new ConcurrentLinkedQueue<>();
         pixmapBuffer.add(mapPixmap);
@@ -121,12 +124,12 @@ public class EditorScreen implements Screen, InputProcessor {
         mouseMoved(Gdx.input.getX(), Gdx.input.getY());
         keyDown(getKeyDown());
         batch.begin();
-        mapStage.act(delta);
         uiStage.act(delta);
+        mapStage.act(delta);
         camera.update();
         batch.end();
-        uiStage.draw();
         mapStage.draw();
+        uiStage.draw();
     }
 
     @Override
@@ -176,14 +179,6 @@ public class EditorScreen implements Screen, InputProcessor {
         addTextChangeListener(width, false);
         TextField height = new TextField(String.valueOf(mapHeight), skin);
         addTextChangeListener(height, false);
-        TextButton exit = new TextButton("EXIT", skin);
-        exit.addListener(new ClickListener() {
-            @Override
-            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                game.setScreen(new MenuScreen(game));
-                return true;
-            }
-        });
         TextButton save = new TextButton("SAVE", skin);
         save.addListener(new ClickListener() {
             @Override
@@ -195,7 +190,6 @@ public class EditorScreen implements Screen, InputProcessor {
                 return true;
             }
         });
-        TextButton load = new TextButton("LOAD", skin);
         List<ImageButton> terrainTexturesButtons = terrainPixmaps.entrySet().stream()
                 .filter(e -> e.getKey() == Terrain.SAND || e.getKey() == Terrain.GRASS)
                 .map(e -> {
@@ -206,10 +200,9 @@ public class EditorScreen implements Screen, InputProcessor {
                         @Override
                         public void clicked(InputEvent event, float x, float y) {
                             if (!isBrush) {
-                                Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Crosshair);
-                                isBrush = true;
                                 currentTexture = e.getKey();
                                 brush = terrainPixmaps.get(currentTexture);
+                                updateBrush(true);
                             }
                         }
                     });
@@ -252,13 +245,8 @@ public class EditorScreen implements Screen, InputProcessor {
         slider.setValue(brushSize);
         toolbarTable.add(slider).expandX().fill().colspan(3);
         toolbarTable.row().padBottom(pad);
-        toolbarTable.row().padBottom(pad);
         toolbarTable.add(save).padLeft(pad)
-                .padRight(pad).expandX().fill().left();
-        toolbarTable.add(load).padLeft(pad)
-                .padRight(pad).expandX().fill().center();
-        toolbarTable.add(exit).padLeft(pad)
-                .padRight(pad).expandX().fill().right();
+                .padRight(pad).expandX().fill().colspan(3);
         toolBar = new Window("Toolbar", skin);
         toolBar.setResizable(true);
         toolBar.setModal(true);
@@ -270,12 +258,13 @@ public class EditorScreen implements Screen, InputProcessor {
                 toolBar.setPosition(MathUtils.clamp(toolBar.getX(),
                                 0, Gdx.graphics.getWidth() - toolBar.getWidth()),
                         MathUtils.clamp(toolBar.getY(), 0,
-                                Gdx.graphics.getHeight() - toolBar.getHeight() - topPane.getHeight()));
+                                Gdx.graphics.getHeight() - toolBar.getHeight()));
             }
         });
     }
 
     private void createTopPane() {
+        TextButton load = new TextButton("Load Map", skin);
         TextButton loadImage = new TextButton("Load Image", skin);
         TextButton toggleToolbar = new TextButton("Toggle toolbar", skin);
         toggleToolbar.addListener(new ClickListener() {
@@ -284,15 +273,31 @@ public class EditorScreen implements Screen, InputProcessor {
                 toolBar.setVisible(!toolBar.isVisible());
             }
         });
-        topPane = new Table();
-        topPane.setBackground(toolBar.getBackground());
-        topPane.add(loadImage).pad(10).left();
-        topPane.add(toggleToolbar).pad(10).left();
+
+        TextButton exit = new TextButton("Exit", skin);
+        exit.addListener(new ClickListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                game.setScreen(new MenuScreen(game));
+                return true;
+            }
+        });
+        topPane = new Window("Map Editor v1.0", skin);
+        topPane.setMovable(false);
+        topPane.setResizable(false);
+        topPane.setModal(false);
+        topPane.align(Align.left);
+        topPane.add(load).pad(10);
+        topPane.add(loadImage).pad(10);
+        topPane.add(toggleToolbar).pad(10);
+        topPane.add(exit).pad(10);
         topPane.addListener(new ClickListener() {
+
             @Override
             public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
                 isOnUiFocus = true;
             }
+
         });
     }
 
@@ -332,19 +337,26 @@ public class EditorScreen implements Screen, InputProcessor {
     public boolean keyDown(int keycode) {
         if (!isOnUiFocus) {
             if (isMapMoveKey(keycode)) {
-//                InputEvent keyTyped = new InputEvent();
-//                keyTyped.setType(InputEvent.Type.keyDown);
-//                keyTyped.setStage(mapStage);
-//                keyTyped.setKeyCode(keycode);
-//                mapActor.fire(keyTyped);
-                mapStage.keyDown(keycode);
+                InputEvent keyTyped = new InputEvent();
+                keyTyped.setType(InputEvent.Type.keyDown);
+                keyTyped.setStage(mapStage);
+                keyTyped.setKeyCode(keycode);
+                return mapActor.fire(keyTyped);
             }
             if (keycode == CONTROL_LEFT || keycode == CONTROL_RIGHT) {
                 controlIsDown = true;
             }
             if (controlIsDown && keycode == Z) {
-                updateBuffer();
+                updateBuffer(true);
+                return true;
             }
+        }
+        if (keycode == ESCAPE && isBrush) {
+            updateBrush(false);
+            return true;
+        }
+        if (keycode == J) {
+            System.out.println("isBrush = " + isBrush + ", isDrawing = " + isDrawing + ", isOnUiFocus = " + isOnUiFocus + ", pixmapBuffer.size() = " + pixmapBuffer.size());
         }
         return false;
     }
@@ -371,27 +383,25 @@ public class EditorScreen implements Screen, InputProcessor {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        if (!isOnUiFocus && isBrush && !isDrawing) {
-            isDrawing = true;
-        } else if (!isOnUiFocus && isBrush) {
+        if (!isOnUiFocus && isBrush) {
             mapPixmap.drawPixmap(brush, screenX, screenY, 0, 0, (int) brushSize, (int) brushSize);
-            return mapStage.touchDown(screenX, screenY, pointer, button);
         }
         return false;
     }
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        if (!isOnUiFocus && isBrush && isDrawing) {
+        if (!isOnUiFocus && isBrush) {
             isDrawing = false;
-            updateBuffer();
+            updateBuffer(false);
         }
         return false;
     }
 
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
-        if (!isOnUiFocus && isBrush && isDrawing) {
+        if (!isOnUiFocus && isBrush) {
+            isDrawing = true;
             mapPixmap.drawPixmap(brush, screenX, screenY, 0, 0, (int) brushSize, (int) brushSize);
         }
         return false;
@@ -406,6 +416,7 @@ public class EditorScreen implements Screen, InputProcessor {
             mouseMoved.setStageX(screenX);
             mouseMoved.setStageY(screenY);
             mapActor.fire(mouseMoved);
+            return true;
         }
         return false;
     }
@@ -420,26 +431,45 @@ public class EditorScreen implements Screen, InputProcessor {
             scrolled.setStageY(Gdx.input.getY());
             scrolled.setScrollAmountY(amountY);
             mapActor.fire(scrolled);
+            return true;
         }
         return false;
     }
 
-    private void updateBuffer() {
-        if (pixmapBuffer.size() < 10) {
+    private void updateBuffer(boolean undo) {
+        if (undo) {
+            mapPixmap.dispose();
             try {
-                mapTexture.draw(pixmapBuffer.remove(), 0, 0);
+                mapPixmap = new Pixmap(pixmapBuffer.remove().getPixels());
             } catch (NoSuchElementException ignored) {
             }
-        } else if (pixmapBuffer.size() == 10) {
-            ConcurrentLinkedQueue<Pixmap> temp = new ConcurrentLinkedQueue<>();
-            for (int i = 1; i < pixmapBuffer.size(); i++) {
-                temp.add(pixmapBuffer.poll());
-            }
-            pixmapBuffer.clear();
-            pixmapBuffer.add(mapPixmap);
-            pixmapBuffer.addAll(temp);
         } else {
-            pixmapBuffer.add(mapPixmap);
+            if (pixmapBuffer.size() <= BUFFER_SIZE) {
+                pixmapBuffer.add(mapPixmap);
+            } else {
+                ConcurrentLinkedQueue<Pixmap> temp = new ConcurrentLinkedQueue<>();
+                int size = pixmapBuffer.size();
+                for (int i = 1; i < size; i++) {
+                    temp.add(pixmapBuffer.poll());
+                }
+                pixmapBuffer = new ConcurrentLinkedQueue<>();
+                pixmapBuffer.add(mapPixmap);
+                pixmapBuffer.addAll(temp);
+            }
+        }
+    }
+
+    private void updateBrush(boolean brushOn) {
+        if (!isBrush) {
+            if (brushOn) {
+                isBrush = true;
+                Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Crosshair);
+            }
+        } else {
+            if (!brushOn) {
+                isBrush = false;
+                Gdx.graphics.setCursor(cursor);
+            }
         }
     }
 }
