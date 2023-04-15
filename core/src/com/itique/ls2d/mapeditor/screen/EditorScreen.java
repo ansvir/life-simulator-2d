@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
@@ -16,7 +17,9 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.itique.ls2d.constant.world.DefaultGreenCity;
+import com.itique.ls2d.mapeditor.actor.BorderActor;
 import com.itique.ls2d.mapeditor.actor.MapActor;
+import com.itique.ls2d.mapeditor.actor.MapGroup;
 import com.itique.ls2d.model.world.Terrain;
 import com.itique.ls2d.util.ResourceUtil;
 
@@ -38,7 +41,6 @@ public class EditorScreen implements Screen, InputProcessor {
     private Table mainContainer;
     private Map<Terrain, Pixmap> terrainPixmaps;
     private Terrain currentTexture;
-    private Texture mapTexture;
     private Pixmap mapPixmap;
     private long mapWidth;
     private long mapHeight;
@@ -47,7 +49,7 @@ public class EditorScreen implements Screen, InputProcessor {
     private Window toolBar;
     private Stage mapStage;
     private Stage uiStage;
-    private MapActor mapActor;
+    private MapGroup mapGroup;
     private Table toolbarTable;
     private SpriteBatch batch;
     private InputMultiplexer multiplexer;
@@ -61,6 +63,9 @@ public class EditorScreen implements Screen, InputProcessor {
     private float brushSize;
     private boolean isBrush;
     private Window topPane;
+    private Label infoLabel;
+    private BorderActor borders;
+    private MapActor mapActor;
 
     public EditorScreen(Game game) {
         this.game = game;
@@ -82,21 +87,28 @@ public class EditorScreen implements Screen, InputProcessor {
         mapPixmap = new Pixmap((int) mapWidth, (int) mapHeight, Pixmap.Format.RGBA8888);
         mapPixmap.setColor(Color.valueOf("178693"));
         mapPixmap.fill();
-        mapTexture = new Texture(mapPixmap);
-        mapActor = new MapActor(mapTexture, mapWidth, mapHeight, camera);
-        mapActor.addListener(new ClickListener() {
+        mapGroup = new MapGroup(camera, mapWidth, mapHeight);
+        mapGroup.addListener(new ClickListener() {
             @Override
             public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
                 isOnUiFocus = false;
             }
         });
+        borders = new BorderActor(camera, mapWidth, mapHeight);
+        mapActor = new MapActor(mapPixmap, new Vector2(mapWidth, mapHeight));
+        mapGroup.addObject(mapActor);
+        mapGroup.addObject(borders);
+        borders.toFront();
         terrainPixmaps = new DefaultGreenCity().getTerrainTexturesPaths()
                 .entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, v -> new Pixmap(Gdx.files.internal(v.getValue()))));
+        currentTexture = Terrain.SAND;
         createToolbar();
         createTopPane();
-        mainContainer.add(topPane).expand().fill().height(Gdx.graphics.getHeight() / 8f).top();
+        mainContainer.add(topPane).expand().fill().height(Gdx.graphics.getHeight() / 8f).top().colspan(2);
         mainContainer.row().height(Gdx.graphics.getHeight() - topPane.getHeight());
+        infoLabel = new Label(currentTexture.name().toLowerCase() + "\n" + Math.round(camera.zoom * 100) + " %", skin);
+        mainContainer.add(infoLabel).pad(10).grow().bottom();
         mainContainer.add(toolBar).width(Gdx.graphics.getWidth() / 3.5f).right().top();
 
         toolBar.addListener(new ClickListener() {
@@ -106,7 +118,7 @@ public class EditorScreen implements Screen, InputProcessor {
             }
         });
         mainContainer.setFillParent(true);
-        mapStage.addActor(mapActor);
+        mapStage.addActor(mapGroup);
         uiStage.addActor(mainContainer);
         cursorPixmap = new Pixmap(Gdx.files.internal("textures/cursor.png"));
         cursor = Gdx.graphics.newCursor(cursorPixmap, 0, 0);
@@ -161,7 +173,6 @@ public class EditorScreen implements Screen, InputProcessor {
         atlas.dispose();
         terrainPixmaps.values().forEach(Pixmap::dispose);
         mapPixmap.dispose();
-        mapTexture.dispose();
         mapStage.dispose();
         uiStage.dispose();
         batch.dispose();
@@ -186,13 +197,15 @@ public class EditorScreen implements Screen, InputProcessor {
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
                 mapWidth = Integer.parseInt(width.getText());
                 mapHeight = Integer.parseInt(height.getText());
-                mapActor.setWidth(mapWidth);
-                mapActor.setHeight(mapHeight);
+                mapGroup.setWidth(mapWidth);
+                mapGroup.setHeight(mapHeight);
                 return true;
             }
         });
         List<ImageButton> terrainTexturesButtons = terrainPixmaps.entrySet().stream()
-                .filter(e -> e.getKey() == Terrain.SAND || e.getKey() == Terrain.GRASS)
+                .filter(e -> e.getKey() == Terrain.SAND || e.getKey() == Terrain.GRASS
+                        || e.getKey() == Terrain.WATER || e.getKey() == Terrain.ROCK
+                        || e.getKey() == Terrain.TREE)
                 .map(e -> {
                     Pixmap newPixmap = ResourceUtil.resizePixmap(e.getValue(), 50, 50);
                     Texture newTexture = new Texture(newPixmap);
@@ -200,11 +213,10 @@ public class EditorScreen implements Screen, InputProcessor {
                     terrain.addListener(new ClickListener() {
                         @Override
                         public void clicked(InputEvent event, float x, float y) {
-                            if (!isBrush) {
-                                currentTexture = e.getKey();
-                                brush = terrainPixmaps.get(currentTexture);
-                                updateBrush(true);
-                            }
+                            currentTexture = e.getKey();
+                            infoLabel.setText(currentTexture.name().toLowerCase() + "\n" + Math.round(camera.zoom * 100) + " %");
+                            brush = terrainPixmaps.get(currentTexture);
+                            updateBrush(true);
                         }
                     });
                     return terrain;
@@ -226,9 +238,9 @@ public class EditorScreen implements Screen, InputProcessor {
         palette.setMovable(false);
         palette.setModal(false);
         palette.setResizable(false);
-        for (ImageButton b : terrainTexturesButtons) {
-            for (int j = 0; j < 3 && j < terrainTexturesButtons.size(); j++) {
-                palette.add(b).pad(pad);
+        for (int i = 0; i < terrainTexturesButtons.size();) {
+            for (int j = 0; j < 3 && i < terrainTexturesButtons.size(); j++, i++) {
+                palette.add(terrainTexturesButtons.get(i)).pad(pad);
             }
             palette.row();
         }
@@ -240,7 +252,6 @@ public class EditorScreen implements Screen, InputProcessor {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 brushSize = slider.getValue();
-                brush = ResourceUtil.resizePixmap(brush, (int) brushSize, (int) brushSize);
             }
         });
         slider.setValue(brushSize);
@@ -342,7 +353,7 @@ public class EditorScreen implements Screen, InputProcessor {
                 keyTyped.setType(InputEvent.Type.keyDown);
                 keyTyped.setStage(mapStage);
                 keyTyped.setKeyCode(keycode);
-                return mapActor.fire(keyTyped);
+                return mapGroup.fire(keyTyped);
             }
             if (keycode == CONTROL_LEFT || keycode == CONTROL_RIGHT) {
                 controlIsDown = true;
@@ -369,7 +380,7 @@ public class EditorScreen implements Screen, InputProcessor {
             keyUp.setType(InputEvent.Type.keyUp);
             keyUp.setStage(mapStage);
             keyUp.setKeyCode(keycode);
-            mapActor.fire(keyUp);
+            mapGroup.fire(keyUp);
             if (keycode == CONTROL_LEFT || keycode == CONTROL_RIGHT) {
                 controlIsDown = false;
             }
@@ -384,26 +395,29 @@ public class EditorScreen implements Screen, InputProcessor {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        if (!isOnUiFocus && isBrush) {
+        if (isBrush) {
+            isDrawing = true;
             mapPixmap.drawPixmap(brush, screenX, screenY, 0, 0, (int) brushSize, (int) brushSize);
+            return true;
         }
         return false;
     }
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        if (!isOnUiFocus && isBrush) {
+        if (isBrush) {
             isDrawing = false;
             updateBuffer(false);
+            return true;
         }
         return false;
     }
 
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
-        if (!isOnUiFocus && isBrush) {
-            isDrawing = true;
+        if (isDrawing) {
             mapPixmap.drawPixmap(brush, screenX, screenY, 0, 0, (int) brushSize, (int) brushSize);
+            return true;
         }
         return false;
     }
@@ -416,7 +430,7 @@ public class EditorScreen implements Screen, InputProcessor {
             mouseMoved.setStage(mapStage);
             mouseMoved.setStageX(screenX);
             mouseMoved.setStageY(screenY);
-            mapActor.fire(mouseMoved);
+            mapGroup.fire(mouseMoved);
             return true;
         }
         return false;
@@ -431,7 +445,8 @@ public class EditorScreen implements Screen, InputProcessor {
             scrolled.setStageX(Gdx.input.getX());
             scrolled.setStageY(Gdx.input.getY());
             scrolled.setScrollAmountY(amountY);
-            mapActor.fire(scrolled);
+            mapGroup.fire(scrolled);
+            infoLabel.setText(currentTexture.name().toLowerCase() + "\n" + Math.round(camera.zoom * 100) + " %");
             return true;
         }
         return false;
@@ -461,16 +476,12 @@ public class EditorScreen implements Screen, InputProcessor {
     }
 
     private void updateBrush(boolean brushOn) {
-        if (!isBrush) {
-            if (brushOn) {
-                isBrush = true;
-                Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Crosshair);
-            }
+        if (brushOn) {
+            isBrush = true;
+            Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Crosshair);
         } else {
-            if (!brushOn) {
-                isBrush = false;
-                Gdx.graphics.setCursor(cursor);
-            }
+            isBrush = false;
+            Gdx.graphics.setCursor(cursor);
         }
     }
 }
