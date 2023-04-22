@@ -5,29 +5,13 @@ import com.itique.ls2d.model.world.BuildingType;
 
 import java.io.Serializable;
 
-public class BuildingModel extends Identifiable implements Serializable {
+public class BuildingModel extends AbstractShape implements Serializable {
 
     private BuildingType type;
-    private float xStart;
-    private float yStart;
-    private float width;
-    private float height;
 
-    public BuildingModel(BuildingType type, float xStart, float yStart, float width, float height) {
+    public BuildingModel(BuildingType type, float x, float y, float width, float height) {
+        super(x, y, width, height);
         this.type = type;
-        this.xStart = xStart;
-        this.yStart = yStart;
-        this.width = width;
-        this.height = height;
-    }
-
-    public BuildingModel(String id, BuildingType type, float xStart, float yStart, float width, float height) {
-        super(id);
-        this.type = type;
-        this.xStart = xStart;
-        this.yStart = yStart;
-        this.width = width;
-        this.height = height;
     }
 
     public BuildingModel() {
@@ -40,38 +24,6 @@ public class BuildingModel extends Identifiable implements Serializable {
 
     public void setType(BuildingType type) {
         this.type = type;
-    }
-
-    public float getxStart() {
-        return xStart;
-    }
-
-    public void setxStart(float xStart) {
-        this.xStart = xStart;
-    }
-
-    public float getyStart() {
-        return yStart;
-    }
-
-    public void setyStart(float yStart) {
-        this.yStart = yStart;
-    }
-
-    public float getWidth() {
-        return width;
-    }
-
-    public void setWidth(float width) {
-        this.width = width;
-    }
-
-    public float getHeight() {
-        return height;
-    }
-
-    public void setHeight(float height) {
-        this.height = height;
     }
 
 }

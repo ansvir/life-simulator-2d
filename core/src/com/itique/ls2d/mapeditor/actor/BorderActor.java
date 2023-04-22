@@ -2,13 +2,11 @@ package com.itique.ls2d.mapeditor.actor;
 
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.utils.Disposable;
 
-public class BorderActor extends AbstractMapGroup implements Disposable {
+public class BorderActor extends AbstractGroup implements Disposable {
 
     private static final int BORDER_DIAPASON = 2;
 

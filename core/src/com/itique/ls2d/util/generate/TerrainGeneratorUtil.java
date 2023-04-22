@@ -24,8 +24,8 @@ public class TerrainGeneratorUtil {
                 return Terrain.ROAD;
             case RGBAConstant.TREE:
                 return Terrain.TREE;
-            case RGBAConstant.OFFICE:
-                return Terrain.OFFICE;
+            case RGBAConstant.BUILDING:
+                return Terrain.BUILDING;
             case RGBAConstant.WATER:
                 return Terrain.WATER;
             case RGBAConstant.HILL_1:

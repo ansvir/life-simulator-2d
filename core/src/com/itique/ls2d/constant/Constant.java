@@ -22,4 +22,7 @@ public abstract class Constant {
     // world
     public static final int VISIBLE_WIDTH = 640;
     public static final int VISIBLE_HEIGHT = 480;
+
+    public static final int ROAD_WIDTH = 8;
+    public static final int ROAD_HEIGHT = 2;
 }

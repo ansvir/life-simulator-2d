@@ -33,7 +33,7 @@ public class DefaultGreenCity implements DefaultCity {
         terrainPaths.put(Terrain.SAND, "textures/terrain/sand.png");
         terrainPaths.put(Terrain.GRASS, "textures/terrain/grass.png");
         terrainPaths.put(Terrain.ROCK, "textures/terrain/rock.png");
-        terrainPaths.put(Terrain.OFFICE, "textures/terrain/office.png");
+        terrainPaths.put(Terrain.BUILDING, "textures/terrain/building.png");
         terrainPaths.put(Terrain.TREE, "textures/terrain/tree.png");
         terrainPaths.put(Terrain.WATER, "textures/terrain/water.png");
         terrainPaths.put(Terrain.ROAD, "textures/terrain/road.png");

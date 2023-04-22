@@ -1,61 +1,22 @@
 package com.itique.ls2d.mapeditor.model;
 
-import com.itique.ls2d.model.Identifiable;
-
 import java.io.Serializable;
-import java.util.UUID;
 
-public class RoadModel extends Identifiable implements Serializable {
+public class RoadModel extends AbstractShape implements Serializable {
 
-    private float xStart;
-    private float yStart;
-    private long length;
     private Type type;
-    private Direction direction;
 
-    public RoadModel(float xStart, float yStart, long length, Type type, Direction direction) {
-        this.xStart = xStart;
-        this.yStart = yStart;
-        this.length = length;
+    public RoadModel(float x, float y, float width, float height, Type type) {
+        super(x, y, width, height);
         this.type = type;
-        this.direction = direction;
-    }
-
-    public RoadModel(String id, float xStart, float yStart, long length, Type type, Direction direction) {
-        super(id);
-        this.xStart = xStart;
-        this.yStart = yStart;
-        this.length = length;
-        this.type = type;
-        this.direction = direction;
     }
 
     public RoadModel() {
         // serialization constructor
     }
 
-    public float getxStart() {
-        return xStart;
-    }
-
-    public void setxStart(float xStart) {
-        this.xStart = xStart;
-    }
-
-    public float getyStart() {
-        return yStart;
-    }
-
-    public void setyStart(float yStart) {
-        this.yStart = yStart;
-    }
-
-    public long getLength() {
-        return length;
-    }
-
-    public void setLength(long length) {
-        this.length = length;
+    public static Builder builder() {
+        return new Builder();
     }
 
     public Type getType() {
@@ -66,20 +27,70 @@ public class RoadModel extends Identifiable implements Serializable {
         this.type = type;
     }
 
-    public Direction getDirection() {
-        return direction;
-    }
-
-    public void setDirection(Direction direction) {
-        this.direction = direction;
-    }
-
-    public enum Direction {
-        LEFT, RIGHT, UP, DOWN, TOP_LEFT_BOTTOM_RIGHT, TOP_RIGHT_BOTTOM_LEFT
-    }
-
     public enum Type {
         STRAIGHT, DIAGONAL, PART
+    }
+
+    public static class Builder {
+
+        private float x;
+        private float y;
+        private float width;
+        private float height;
+        private Type type;
+
+        public Builder() {
+        }
+
+        public Builder x(float xStart) {
+            this.x = xStart;
+            return this;
+        }
+
+        public Builder y(float yStart) {
+            this.y = yStart;
+            return this;
+        }
+
+        public Builder width(float width) {
+            this.width = width;
+            return this;
+        }
+
+        public Builder height(float height) {
+            this.height = height;
+            return this;
+        }
+
+        public Builder type(Type type) {
+            this.type = type;
+            return this;
+        }
+
+        public RoadModel build() {
+            return new RoadModel(this.x, this.y, this.width, this.height, this.type);
+        }
+
+        public float getX() {
+            return x;
+        }
+
+        public float getY() {
+            return y;
+        }
+
+        public float getWidth() {
+            return width;
+        }
+
+        public float getHeight() {
+            return height;
+        }
+
+        public Type getType() {
+            return type;
+        }
+
     }
 
 }

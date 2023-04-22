@@ -8,7 +8,7 @@ public abstract class RGBAConstant {
     public static final int ROCK = 1449022463;
     public static final int TREE = 625286399;
     public static final int WATER = 394695679;
-    public static final int OFFICE = 1667458047;
+    public static final int BUILDING = 1667458047;
     public static final int ROAD = 255;
     public static final int HILL_1 = 1718641663;
     public static final int HILL_2 = 1954443519;

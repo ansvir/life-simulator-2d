@@ -31,8 +31,6 @@ public class MapModelFileDao implements FileDao<MapModel> {
     private static final String HEIGHT = "Height";
     private static final String ROADS = "Roads";
     private static final String ROAD = "Road";
-    private static final String DIRECTION = "Direction";
-    private static final String LENGTH = "Length";
     private static final String MAP_IMAGE_BASE_64 = "MapImageBase64";
 
     @Override
@@ -43,13 +41,15 @@ public class MapModelFileDao implements FileDao<MapModel> {
             xmlWriter.element(MAP)
                     .element(ID).text(mapModel.getId()).pop()
                     .element(NAME).text(mapModel.getName()).pop()
+                    .element(WIDTH).text(mapModel.getWidth()).pop()
+                    .element(HEIGHT).text(mapModel.getHeight()).pop()
                     .element(BUILDINGS);
             for (int i = 0; i < mapModel.getBuildings().size(); i++) {
                 BuildingModel building = mapModel.getBuildings().get(i);
                 xmlWriter.element(BUILDING)
                         .attribute(TYPE, building.getType().name())
-                        .element(X_START).text(building.getxStart()).pop()
-                        .element(Y_START).text(building.getyStart()).pop()
+                        .element(X_START).text(building.getX()).pop()
+                        .element(Y_START).text(building.getY()).pop()
                         .element(WIDTH).text(building.getWidth()).pop()
                         .element(HEIGHT).text(building.getHeight()).pop().pop();
             }
@@ -59,10 +59,10 @@ public class MapModelFileDao implements FileDao<MapModel> {
                 RoadModel road = mapModel.getRoads().get(i);
                 xmlWriter.element(ROAD)
                         .attribute(TYPE, road.getType().name())
-                        .element(X_START).text(road.getxStart()).pop()
-                        .element(Y_START).text(road.getyStart()).pop()
-                        .element(DIRECTION).text(road.getDirection().name()).pop()
-                        .element(LENGTH).text(road.getLength()).pop().pop();
+                        .element(X_START).text(road.getX()).pop()
+                        .element(Y_START).text(road.getY()).pop()
+                        .element(WIDTH).text(road.getWidth()).pop()
+                        .element(HEIGHT).text(road.getHeight()).pop().pop();
             }
             xmlWriter.pop();
             xmlWriter.element(MAP_IMAGE_BASE_64).text(mapModel.getMapImageBase64())
@@ -98,6 +98,8 @@ public class MapModelFileDao implements FileDao<MapModel> {
             XmlReader.Element root = xmlReader.parse(f);
             String id = root.getChildByName(ID).getText();
             String name = root.getChildByName(NAME).getText();
+            float width = Float.parseFloat(root.getChildByName(WIDTH).getText());
+            float height = Float.parseFloat(root.getChildByName(HEIGHT).getText());
             List<BuildingModel> buildings = Arrays.stream(root.getChildByName(BUILDINGS)
                     .getChildrenByName(BUILDING).toArray(XmlReader.Element.class)).map(b ->
                         new BuildingModel(
@@ -111,12 +113,12 @@ public class MapModelFileDao implements FileDao<MapModel> {
                     new RoadModel(
                             r.getFloat(X_START),
                             r.getFloat(Y_START),
-                            r.getInt(LENGTH),
-                            RoadModel.Type.valueOf(r.getAttribute(TYPE)),
-                            RoadModel.Direction.valueOf(r.getChildByName(DIRECTION).getText())))
+                            r.getFloat(WIDTH),
+                            r.getFloat(HEIGHT),
+                            RoadModel.Type.valueOf(r.getAttribute(TYPE))))
                     .collect(Collectors.toList());
             String mapImageBase64 = root.getChildByName(MAP_IMAGE_BASE_64).getText();
-            return new MapModel(id, name, roads, buildings, mapImageBase64);
+            return new MapModel(id, name, width, height, roads, buildings, mapImageBase64);
         }).collect(Collectors.toList());
     }
 

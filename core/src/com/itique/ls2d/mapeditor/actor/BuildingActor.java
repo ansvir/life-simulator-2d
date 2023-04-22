@@ -3,7 +3,7 @@ package com.itique.ls2d.mapeditor.actor;
 import com.badlogic.gdx.math.Vector2;
 import com.itique.ls2d.model.world.BuildingType;
 
-public class BuildingActor extends AbstractMapGroup {
+public class BuildingActor extends AbstractGroup {
 
     private BuildingType type;
 

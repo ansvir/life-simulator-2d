@@ -3,20 +3,17 @@ package com.itique.ls2d.mapeditor.actor;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
-import com.badlogic.gdx.utils.Align;
 
 import java.util.ArrayList;
 
 public class MapGroup extends Group {
 
     private float width, height;
-    private ArrayList<AbstractMapGroup> objects;
+    private ArrayList<AbstractGroup> objects;
     private OrthographicCamera camera;
     private float zoomSpeed;
     private float panSpeed;
@@ -104,7 +101,7 @@ public class MapGroup extends Group {
         });
     }
 
-    public void addObject(AbstractMapGroup object) {
+    public void addObject(AbstractGroup object) {
         objects.add(object);
         addActor(object);
     }
